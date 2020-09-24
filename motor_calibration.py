@@ -8,7 +8,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 #import costum files
-import phase-postprocess
+import phase_postprocess
+import plot_utils
 
 class bcolors:
     HEADER = '\033[95m'
@@ -36,7 +37,7 @@ print(bcolors.OKBLUE + "[i] Ended phase-calib successfully" + bcolors.ENDC)
 
 # process extracted data
 print(bcolors.OKBLUE + "[i] Starting postprocessing" + bcolors.ENDC)
-config_file = phase-postprocess.postprocess(yaml_file=config_file, plot_all=False)
+config_file = phase_postprocess.postprocess(yaml_file=config_file, plot_all=False)
 
 # Upload to motor the best phase angle
 print(bcolors.OKBLUE + "[i] Sending phase angle to motor using set-phase" +  bcolors.ENDC)
