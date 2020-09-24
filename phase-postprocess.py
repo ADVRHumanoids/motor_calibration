@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os
+import sys
 import glob
 import numpy as np
 from matplotlib import pyplot as plt
@@ -316,7 +317,7 @@ def phase_postprocess(plot_all=False):
 
     print('Result: ph_angle = ' + str(fit_angle))
 
-    # Save the picture ------------------------------------------------------------------------------------------------------
+    # Save the graph ------------------------------------------------------------------------------------------------------
     pdf_name = file[:-4] + '.pdf'
     print('Saving graph as: ' + pdf_name)
     plt.savefig(fname=pdf_name, format='pdf')
@@ -324,10 +325,15 @@ def phase_postprocess(plot_all=False):
 
 
 if __name__ == "__main__":
+    cmd = '/home/embedded/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib-free/phase-calib-free'
+    yaml_file = '/home/embedded/ecat_dev/ec_master_app/examples/motor-calib/config.yaml'
+    file_dir = os.path.dirname(__file__)
+    sys.path.append(file_dir)
+    
+    plot_utils.print_alberobotics()
     print(bcolors.OKBLUE + "[i] Starting phase-calib-free" + bcolors.ENDC)
     print('Starting phase-calib-free')
-    cmd = '~/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib-free/phase-calib-free ~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml'
-    if os.system(cmd):
+    if os.system(cmd + ' ' + yaml_file):
         import sys
         sys.exit(bcolors.FAIL + '[e] Error during phase-calib-free' + bcolors.ENDC)
 
