@@ -20,14 +20,15 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def phase_postprocess(yaml_file, plot_all=False):
+def postprocess(yaml_file, plot_all=False):
     repeat = 3
     steps_1 = 13
     steps_2 = 6
 
     # read parameters from yaml file
     with open(yaml_file, 'r') as stream:
-        yaml_dict = yaml.safe_load(stream)['calib_phase']
+        out_dict = yaml.safe_load(stream)
+        yaml_dict = out_dict['calib_phase']
     if 'iq_max_repeat_iter' in yaml_dict:
         repeat = yaml_dict['iq_max_repeat_iter']
     if 'iq_number_of_steps' in yaml_dict:
@@ -326,30 +327,41 @@ def phase_postprocess(yaml_file, plot_all=False):
 
     print(bcolors.OKGREEN + u'[\u2713] Result: ph_angle = ' + str(fit_angle) +
           bcolors.ENDC)
-    yaml_dict['optimized_angle']=float(fit_angle)
-    yaml_name = file[:-4] + '.yaml'
-    print('Saving yaml as: ' + yaml_name)
-    with open(yaml_name, 'w', encoding='utf8') as outfile:
-        yaml.dump(yaml_dict, outfile, default_flow_style=False, allow_unicode=True)
 
-    # Save the graph ------------------------------------------------------------------------------------------------------
+    # Save the graph
     pdf_name = file[:-4] + '.pdf'
     print('Saving graph as: ' + pdf_name)
     plt.savefig(fname=pdf_name, format='pdf')
-    print(bcolors.OKBLUE + "[i] Ending program" + bcolors.ENDC)
 
+    # Save result
+    out_dict['calib_phase']['optimized_angle'] = float(fit_angle)
+    yaml_name = file[:-4] + '.yaml'
+    print('Saving yaml as: ' + yaml_name)
+    with open(yaml_name, 'w', encoding='utf8') as outfile:
+        yaml.dump(out_dict, outfile, default_flow_style=False, allow_unicode=True)
+    return yaml_name
 
 if __name__ == "__main__":
-    cmd = '/home/embedded/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib/phase-calib'
-    yaml_file = '/home/embedded/ecat_dev/ec_master_app/examples/motor-calib/config.yaml'
+    cmd = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib/phase-calib')
+    yaml_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
 
-    plot_utils.print_alberobotics()
     print(bcolors.OKBLUE + "[i] Starting phase-calib" + bcolors.ENDC)
-    if False:
-        #if os.system(cmd + ' ' + yaml_file):
+    #if False:
+    if os.system(cmd + ' ' + yaml_file):
         sys.exit(bcolors.FAIL + u'[\u2717] Error during phase-calib' + bcolors.ENDC)
 
-    print(bcolors.OKBLUE + "[i] Ended phase-calib" + bcolors.ENDC)
+    print(bcolors.OKBLUE + "[i] Ended phase-calib successfully" + bcolors.ENDC)
     print(bcolors.OKBLUE + "[i] Starting postprocessing" +
           bcolors.ENDC)
-    phase_postprocess(yaml_file=yaml_file, plot_all=False)
+    yaml_file = postprocess(yaml_file=yaml_file, plot_all=False)
+
+    # Upload to motor the best phase angle
+    print(bcolors.OKBLUE + "[i] Sending phase angle to motor using set-phase" +
+          bcolors.ENDC)
+    cmd = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/set-phase/set-phase')
+    #if False:
+    if os.system(cmd + ' ' + yaml_file):
+        sys.exit(bcolors.FAIL + u'[\u2717] Error during set-phase' +
+                 bcolors.ENDC)
+    print(bcolors.OKBLUE + "[i] Ended set-phase successfully" + bcolors.ENDC)
+    print(bcolors.OKBLUE + "[i] Ending program" + bcolors.ENDC)
