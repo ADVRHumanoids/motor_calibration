@@ -24,6 +24,7 @@ plot_utils.print_alberobotics()
 
 # test phase angles
 print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
+#if False:
 if os.system(cmd1 + ' ' + config_file):
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during phase-calib' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended phase-calib successfully" + plot_utils.bcolors.ENDC)
@@ -34,9 +35,9 @@ config_file = phase_postprocess.postprocess(yaml_file=config_file, plot_all=Fals
 
 # Upload to motor the best phase angle
 print(plot_utils.bcolors.OKBLUE + "[i] Sending phase angle to motor using set-phase" +  plot_utils.bcolors.ENDC)
+#if False:
 if os.system(cmd2 + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-phase' +
-             plot_utils.bcolors.ENDC)
+    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-phase' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended set-phase successfully" + plot_utils.bcolors.ENDC)
 
-print(plot_utils.bcolors.OKBLUE + "[i] Ending program" + plot_utils.bcolors.ENDC)
+print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)

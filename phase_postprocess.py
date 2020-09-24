@@ -292,7 +292,7 @@ def postprocess(yaml_file, plot_all=False):
     axs.grid(b=True, which='minor', axis='y', linestyle=':')
 
     axs.axvline(0, color='black', lw=1.2)
-    axs.set_ylim(min(vals_1) * 1.1, max(vals_1) * 1.1)
+    axs.set_ylim(min(vals_1) * 1.1, max(vals_2) * 1.1)
     axs.yaxis.set_major_locator(
         plt.MultipleLocator((max(vals_1) - min(vals_1)) * 1.1 / 6))
     axs.yaxis.set_minor_locator(
@@ -354,4 +354,4 @@ if __name__ == "__main__":
         sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-phase' +
                  plot_utils.bcolors.ENDC)
     print(plot_utils.bcolors.OKBLUE + "[i] Ended set-phase successfully" + plot_utils.bcolors.ENDC)
-    print(plot_utils.bcolors.OKBLUE + "[i] Ending program" + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)
