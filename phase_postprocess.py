@@ -10,16 +10,6 @@ from matplotlib import pyplot as plt
 #import costum
 import plot_utils
 
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
 def postprocess(yaml_file, plot_all=False):
     repeat = 3
     steps_1 = 13
@@ -39,9 +29,9 @@ def postprocess(yaml_file, plot_all=False):
     # read data from latest file --------------------------------------------------------------
     list_of_files = glob.glob('/logs/*.log')
     file = max(list_of_files, key=os.path.getctime)
-    print(bcolors.OKBLUE + '[i] Reading file: ' + file + bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + '[i] Reading file: ' + file + plot_utils.bcolors.ENDC)
 
-    print(bcolors.OKBLUE + '[i] Post-processing ph_angle data' + bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + '[i] Post-processing ph_angle data' + plot_utils.bcolors.ENDC)
     # '%u64\t%u\t%u\t%u\t%u\t%f\t%f\t%d\t%f\t%f\t%f'
     ns = [np.uint64(x.split('\t')[0]) for x in open(file).readlines()]
     curr_type = [np.uint32(x.split('\t')[1]) for x in open(file).readlines()]
@@ -325,8 +315,8 @@ def postprocess(yaml_file, plot_all=False):
     if plot_all:
         plt.show()
 
-    print(bcolors.OKGREEN + u'[\u2713] Result: ph_angle = ' + str(fit_angle) +
-          bcolors.ENDC)
+    print(plot_utils.bcolors.OKGREEN + u'[\u2713] Result: ph_angle = ' + str(fit_angle) +
+          plot_utils.bcolors.ENDC)
 
     # Save the graph
     pdf_name = file[:-4] + '.pdf'
@@ -345,23 +335,23 @@ if __name__ == "__main__":
     cmd = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib/phase-calib')
     yaml_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
 
-    print(bcolors.OKBLUE + "[i] Starting phase-calib" + bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
     #if False:
     if os.system(cmd + ' ' + yaml_file):
-        sys.exit(bcolors.FAIL + u'[\u2717] Error during phase-calib' + bcolors.ENDC)
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during phase-calib' + plot_utils.bcolors.ENDC)
 
-    print(bcolors.OKBLUE + "[i] Ended phase-calib successfully" + bcolors.ENDC)
-    print(bcolors.OKBLUE + "[i] Starting postprocessing" +
-          bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ended phase-calib successfully" + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting postprocessing" +
+          plot_utils.bcolors.ENDC)
     yaml_file = postprocess(yaml_file=yaml_file, plot_all=False)
 
     # Upload to motor the best phase angle
-    print(bcolors.OKBLUE + "[i] Sending phase angle to motor using set-phase" +
-          bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Sending phase angle to motor using set-phase" +
+          plot_utils.bcolors.ENDC)
     cmd = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/set-phase/set-phase')
     #if False:
     if os.system(cmd + ' ' + yaml_file):
-        sys.exit(bcolors.FAIL + u'[\u2717] Error during set-phase' +
-                 bcolors.ENDC)
-    print(bcolors.OKBLUE + "[i] Ended set-phase successfully" + bcolors.ENDC)
-    print(bcolors.OKBLUE + "[i] Ending program" + bcolors.ENDC)
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-phase' +
+                 plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ended set-phase successfully" + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ending program" + plot_utils.bcolors.ENDC)

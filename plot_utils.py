@@ -43,6 +43,17 @@ def formatter(self):
     return plt.FuncFormatter(multiple_formatter(self.denominator, self.number, self.latex))
 
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 def print_alberobotics():
     print('\x1b[38;5;234m'+'················································································')
     print('\x1b[38;5;234m'+'·'+'\x1b[38;5;234m'+'······················'+'\x1b[38;5;242m'+'·'+'\x1b[38;5;235m'+'G'+'\x1b[38;5;243m'+'Q'+'\x1b[38;5;243m'+'Q'+'\x1b[38;5;238m'+'p'+'\x1b[38;5;234m'+'·'+'\x1b[38;5;234m'+'···················································')
@@ -128,4 +139,3 @@ def print_alberobotics_bw():
 if __name__ == "__main__":
     print_alberobotics()
     print_alberobotics_bw()
-
