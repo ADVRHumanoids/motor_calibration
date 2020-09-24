@@ -3,6 +3,7 @@
 import os
 import sys
 import glob
+import yaml
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -19,7 +20,21 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-def phase_postprocess(plot_all=False):
+def phase_postprocess(yaml_file, plot_all=False):
+    repeat = 3
+    steps_1 = 13
+    steps_2 = 6
+
+    # read parameters from yaml file
+    with open(yaml_file, 'r') as stream:
+        yaml_dict = yaml.safe_load(stream)['calib_phase']
+    if 'iq_max_repeat_iter' in yaml_dict:
+        repeat = yaml_dict['iq_max_repeat_iter']
+    if 'iq_number_of_steps' in yaml_dict:
+        steps_1 = yaml_dict['iq_number_of_steps']
+    if 'id_number_of_steps' in yaml_dict:
+        steps_2 = yaml_dict['id_number_of_steps']
+
     # read data from latest file --------------------------------------------------------------
     list_of_files = glob.glob('/logs/*.log')
     file = max(list_of_files, key=os.path.getctime)
@@ -208,30 +223,24 @@ def phase_postprocess(plot_all=False):
             score[1].append(-(max(steps[i][:]) - min(steps[i][:])) / 2)
             score[2].append(-(max(smooth[i][:]) - min(smooth[i][:])) / 2)
 
-    REPEAT_COST = 3
-    STEP_1 = 13
-    STEP_2 = 13
-    BASE2 = STEP_1 * REPEAT_COST
+    base2 = steps_1 * repeat
 
-    keys_1 = phase[:STEP_1]
-    keys_2 = phase[BASE2:BASE2 + STEP_2]
+    keys_1 = phase[:steps_1]
+    keys_2 = phase[base2:base2 + steps_1]
 
-    _phase = []
     vals_1 = []
-    for i in range(0, STEP_1):
-        _phase.append(phase[i])
-        i1 = score[1][i]
-        i2 = score[1][i + STEP_1]
-        i3 = score[1][i + STEP_1 * 2]
-        vals_1.append((i1 + i2 + i3) / 3)
+    for i in range(0, steps_1):
+        tmp = 0.0
+        for j in range(0, repeat):
+            tmp += score[1][i + steps_1 * j]
+        vals_1.append(tmp / repeat)
 
     vals_2 = []
-    for i in range(BASE2, BASE2 + STEP_2):
-        _phase.append(phase[i])
-        i1 = score[1][i]
-        i2 = score[1][i + STEP_2]
-        i3 = score[1][i + STEP_2 * 2]
-        vals_2.append((i1 + i2 + i3) / 3)
+    for i in range(base2, base2 + steps_1):
+        tmp=0.0
+        for j in range(0,repeat):
+            tmp += score[1][i + steps_1 * j]
+        vals_2.append(tmp / repeat)
 
     # Fit 2nd order polinomial and plot max vs phase ------------------------------------------------------
     fig, axs = plt.subplots()
@@ -315,7 +324,13 @@ def phase_postprocess(plot_all=False):
     if plot_all:
         plt.show()
 
-    print('Result: ph_angle = ' + str(fit_angle))
+    print(bcolors.OKGREEN + u'[\u2713] Result: ph_angle = ' + str(fit_angle) +
+          bcolors.ENDC)
+    yaml_dict['optimized_angle']=float(fit_angle)
+    yaml_name = file[:-4] + '.yaml'
+    print('Saving yaml as: ' + yaml_name)
+    with open(yaml_name, 'w', encoding='utf8') as outfile:
+        yaml.dump(yaml_dict, outfile, default_flow_style=False, allow_unicode=True)
 
     # Save the graph ------------------------------------------------------------------------------------------------------
     pdf_name = file[:-4] + '.pdf'
@@ -325,16 +340,16 @@ def phase_postprocess(plot_all=False):
 
 
 if __name__ == "__main__":
-    cmd = '/home/embedded/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib-free/phase-calib-free'
+    cmd = '/home/embedded/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib/phase-calib'
     yaml_file = '/home/embedded/ecat_dev/ec_master_app/examples/motor-calib/config.yaml'
-    file_dir = os.path.dirname(__file__)
-    sys.path.append(file_dir)
-    
-    plot_utils.print_alberobotics()
-    print(bcolors.OKBLUE + "[i] Starting phase-calib-free" + bcolors.ENDC)
-    print('Starting phase-calib-free')
-    if os.system(cmd + ' ' + yaml_file):
-        import sys
-        sys.exit(bcolors.FAIL + '[e] Error during phase-calib-free' + bcolors.ENDC)
 
-    phase_postprocess(plot_all=False)
+    plot_utils.print_alberobotics()
+    print(bcolors.OKBLUE + "[i] Starting phase-calib" + bcolors.ENDC)
+    if False:
+        #if os.system(cmd + ' ' + yaml_file):
+        sys.exit(bcolors.FAIL + u'[\u2717] Error during phase-calib' + bcolors.ENDC)
+
+    print(bcolors.OKBLUE + "[i] Ended phase-calib" + bcolors.ENDC)
+    print(bcolors.OKBLUE + "[i] Starting postprocessing" +
+          bcolors.ENDC)
+    phase_postprocess(yaml_file=yaml_file, plot_all=False)
