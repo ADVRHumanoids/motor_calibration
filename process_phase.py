@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 #import costum
 import plot_utils
 
-def postprocess(yaml_file, plot_all=False):
+def process(yaml_file, plot_all=False):
     repeat = 3
     steps_1 = 13
     steps_2 = 6
@@ -27,7 +27,7 @@ def postprocess(yaml_file, plot_all=False):
         steps_2 = yaml_dict['id_number_of_steps']
 
     # read data from latest file --------------------------------------------------------------
-    list_of_files = glob.glob('/logs/*.log')
+    list_of_files = glob.glob('/logs/*-ripple_calib.log')
     file = max(list_of_files, key=os.path.getctime)
     print(plot_utils.bcolors.OKBLUE + '[i] Reading file: ' + file + plot_utils.bcolors.ENDC)
 
@@ -332,26 +332,9 @@ def postprocess(yaml_file, plot_all=False):
     return yaml_name
 
 if __name__ == "__main__":
-    cmd = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib/phase-calib')
     yaml_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
 
-    print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
-    #if False:
-    if os.system(cmd + ' ' + yaml_file):
-        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during phase-calib' + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting process_ripple" + plot_utils.bcolors.ENDC)
+    yaml_file = process(yaml_file=yaml_file, plot_all=False)
 
-    print(plot_utils.bcolors.OKBLUE + "[i] Ended phase-calib successfully" + plot_utils.bcolors.ENDC)
-    print(plot_utils.bcolors.OKBLUE + "[i] Starting postprocessing" +
-          plot_utils.bcolors.ENDC)
-    yaml_file = postprocess(yaml_file=yaml_file, plot_all=False)
-
-    # Upload to motor the best phase angle
-    print(plot_utils.bcolors.OKBLUE + "[i] Sending phase angle to motor using set-phase" +
-          plot_utils.bcolors.ENDC)
-    cmd = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/set-phase/set-phase')
-    #if False:
-    if os.system(cmd + ' ' + yaml_file):
-        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-phase' +
-                 plot_utils.bcolors.ENDC)
-    print(plot_utils.bcolors.OKBLUE + "[i] Ended set-phase successfully" + plot_utils.bcolors.ENDC)
     print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)
