@@ -33,15 +33,16 @@ def process(yaml_file, plot_all=False):
     print(plot_utils.bcolors.OKBLUE + '[i] Processing data' + plot_utils.bcolors.ENDC)
     # '%u64\t%u\t%u\t%u\t%u\t%f\t%f\t%d\t%f\t%f\t%f'
     ts = [np.uint64(x.split('\t')[0]) for x in open(file).readlines()]
-    is_moving = [np.uint32(x.split('\t')[1]) for x in open(file).readlines()]
-    trj_cnt = [np.uint32(x.split('\t')[2]) for x in open(file).readlines()]
-    curr_ref = [float(x.split('\t')[3]) for x in open(file).readlines()]
-    pos_target = [float(x.split('\t')[4]) for x in open(file).readlines()]
-    pos_motor = [float(x.split('\t')[5]) for x in open(file).readlines()]
-    pos_link = [float(x.split('\t')[6]) for x in open(file).readlines()]
-    vel_motor = [np.int16(x.split('\t')[7]) for x in open(file).readlines()]
-    vel_link = [np.int16(x.split('\t')[8]) for x in open(file).readlines()]
-    aux_var = [float(x.split('\t')[9]) for x in open(file).readlines()]
+    is_moving  = [np.uint32(x.split('\t')[ 1]) for x in open(file).readlines()]
+    trj_cnt    = [np.uint32(x.split('\t')[ 2]) for x in open(file).readlines()]
+    curr_ref   = [    float(x.split('\t')[ 3]) for x in open(file).readlines()]
+    torque     = [    float(x.split('\t')[ 4]) for x in open(file).readlines()]
+    pos_target = [    float(x.split('\t')[ 5]) for x in open(file).readlines()]
+    pos_motor  = [    float(x.split('\t')[ 6]) for x in open(file).readlines()]
+    pos_link   = [    float(x.split('\t')[ 7]) for x in open(file).readlines()]
+    vel_motor  = [ np.int16(x.split('\t')[ 8]) for x in open(file).readlines()]
+    vel_link   = [ np.int16(x.split('\t')[ 9]) for x in open(file).readlines()]
+    aux_var    = [    float(x.split('\t')[10]) for x in open(file).readlines()]
 
     # find where we start testing id instead of iq
     ii = 0
@@ -52,13 +53,13 @@ def process(yaml_file, plot_all=False):
     fig, axs = plt.subplots(2)
     fig.suptitle('RAW')
 
-    plt_max = max([max(aux_var), -min(aux_var)]) * 1.1
+    plt_max = max([max(torque), -min(torque)]) * 1.1
 
-    axs[0].plot(ts, aux_var,
+    axs[0].plot(ts, torque,
                 label='Motor Vel',
                 color='b',
                 marker='.')
-    #axs[0].set_ylim(min(aux_var), max(aux_var))
+    #axs[0].set_ylim(min(torque), max(torque))
     axs[0].set_ylabel('torque (Nm)')
     axs[0].set_xlabel('timestamp (ns)')
     axs[0].grid(b=True, which='major', axis='y', linestyle='-')
@@ -72,12 +73,12 @@ def process(yaml_file, plot_all=False):
     axs[0].spines['right'].set_visible(False)
     axs[0].spines['left'].set_visible(False)
 
-    axs[1].plot(pos_link, aux_var,
+    axs[1].plot(pos_motor, torque,
                 label='Motor Vel',
                 color='b',
                 marker='.')
     axs[1].set_ylim(-plt_max, plt_max)
-    axs[1].set_xlim(min(pos_link), max(pos_link))
+    axs[1].set_xlim(min(pos_motor), max(pos_motor))
     axs[1].set_ylabel('torque (Nm)')
     axs[1].set_xlabel('position (rad)')
     axs[1].grid(b=True, which='major', axis='y', linestyle='-')
@@ -103,22 +104,22 @@ def process(yaml_file, plot_all=False):
         is_there=False
         if is_moving[trj_v[j]]:
             for ii in range(0, len(temp11)):
-                if (abs(temp11[ii][0] - pos_link[trj_v[j - 1]]) < 2*trj_error) and not(is_there):
-                    temp11[ii].extend([v for v in pos_link[trj_v[j - 1]:trj_v[j]]] )
-                    temp21[ii].extend([v for v in pos_link[trj_v[j - 1] : trj_v[j]]])
+                if (abs(temp11[ii][0] - pos_motor[trj_v[j - 1]]) < 2*trj_error) and not(is_there):
+                    temp11[ii].extend([v for v in pos_motor[trj_v[j - 1]:trj_v[j]]] )
+                    temp21[ii].extend([v for v in torque[trj_v[j - 1] : trj_v[j]]])
                     is_there = True
             if not is_there:
-                temp11.append([v for v in pos_link[trj_v[j - 1] : trj_v[j]]])
-                temp21.append([v for v in  aux_var[trj_v[j - 1] : trj_v[j]]])
+                temp11.append([v for v in pos_motor[trj_v[j - 1] : trj_v[j]]])
+                temp21.append([v for v in  torque[trj_v[j - 1] : trj_v[j]]])
         else:
             for ii in range(0, len(temp12)):
-                if (abs(temp12[ii][0] - pos_link[trj_v[j - 1]]) < 2*trj_error) and not (is_there):
-                    temp12[ii].extend([v for v in pos_link[trj_v[j - 1]:trj_v[j]]] )
-                    temp22[ii].extend([v for v in pos_link[trj_v[j - 1] : trj_v[j]]])
+                if (abs(temp12[ii][0] - pos_motor[trj_v[j - 1]]) < 2*trj_error) and not (is_there):
+                    temp12[ii].extend([v for v in pos_motor[trj_v[j - 1]:trj_v[j]]] )
+                    temp22[ii].extend([v for v in torque[trj_v[j - 1] : trj_v[j]]])
                     is_there = True
             if not is_there:
-                temp12.append([v for v in pos_link[trj_v[j - 1] : trj_v[j]]])
-                temp22.append([v for v in aux_var[trj_v[j - 1] : trj_v[j]]])
+                temp12.append([v for v in pos_motor[trj_v[j - 1] : trj_v[j]]])
+                temp22.append([v for v in torque[trj_v[j - 1] : trj_v[j]]])
 
     ts1 = [statistics.median(v) for v in temp11]
     tq1 = [statistics.median(v) for v in temp21]
@@ -130,21 +131,25 @@ def process(yaml_file, plot_all=False):
 
 
 
-    axs[0].plot(ts1, tq1, label='Motor Vel', color='k', marker='.')
+    #axs[0].plot(ts1, tq1, label='Torque$_{raw}$', color='k', marker='.')
     for t, q in zip(temp11, temp21):
         axs[0].plot(t, q, color='#1f77b4')
-    #axs[0].set_ylim(min(aux_var), max(aux_var))
     axs[0].set_ylabel('torque (Nm)')
     axs[0].set_xlabel('position (rad)')
     axs[0].grid(b=True, which='major', axis='y', linestyle='-')
     axs[0].grid(b=True, which='minor', axis='y', linestyle=':')
+    axs[0].grid(b=True, which='major', axis='x', linestyle=':')
 
-    #plt_max = max([max(tq1), -min(tq1)])
-    axs[0].set_xlim(min(ts1), max(ts1))
-    axs[0].set_ylim(-plt_max, plt_max)
+    plt_pad = (max(torque) - min(torque)) * 0.02
+    axs[0].set_ylim(min(torque) - plt_pad, max(torque) + plt_pad)
+    #plt_pad = (max(ts1) - min(ts1)) * 0.02
+    #axs[0].set_xlim(min(ts1) - plt_pad, max(ts1) + plt_pad)
+    axs[0].set_xlim(-np.pi, np.pi)
     axs[0].spines['top'].set_visible(False)
     axs[0].spines['right'].set_visible(False)
     axs[0].spines['left'].set_visible(False)
+    axs[0].yaxis.set_major_locator(plt.MultipleLocator((max(torque) - min(torque)) / 4))
+    axs[0].yaxis.set_minor_locator(plt.MultipleLocator((max(torque) - min(torque)) / 12))
     axs[0].xaxis.set_major_locator(plt.MultipleLocator(np.pi / 4))
     axs[0].xaxis.set_minor_locator(plt.MultipleLocator(np.pi / 12))
     axs[0].xaxis.set_major_formatter(
@@ -152,21 +157,26 @@ def process(yaml_file, plot_all=False):
             plot_utils.multiple_formatter(denominator=4,
                                           number=np.pi,
                                           latex='\pi')))
+    axs[0].ticklabel_format(axis="y",
+                            style="sci",
+                            scilimits=(0, 0),
+                            useOffset=False)
 
-    axs[1].plot(ts2, tq2, label='Motor Vel', color='k', marker='.')
-    for t, q in zip(temp12, temp22):
-        axs[1].plot(t, q)
+    axs[1].plot(ts1, tq1, label='Torque$_{raw}$', color='#1f77b4', marker='.')
 
-    axs[1].set_ylim(-plt_max, plt_max)
-    axs[1].set_xlim(min(ts2), max(ts2))
-    #plt_max = max(tq2)
+    plt_pad = (max(tq1) - min(tq1)) * 0.02
+    axs[1].set_ylim(min(tq1) - plt_pad, max(tq1) + plt_pad)
+    axs[1].set_xlim(-np.pi, np.pi)
     axs[1].set_ylabel('torque (Nm)')
     axs[1].set_xlabel('position (rad)')
     axs[1].grid(b=True, which='major', axis='y', linestyle='-')
     axs[1].grid(b=True, which='minor', axis='y', linestyle=':')
+    axs[1].grid(b=True, which='major', axis='x', linestyle=':')
     axs[1].spines['top'].set_visible(False)
     axs[1].spines['right'].set_visible(False)
     axs[1].spines['left'].set_visible(False)
+    axs[1].yaxis.set_major_locator(plt.MultipleLocator((max(tq1) - min(tq1)) / 4))
+    axs[1].yaxis.set_minor_locator(plt.MultipleLocator((max(tq1) - min(tq1)) / 12))
     axs[1].xaxis.set_major_locator(plt.MultipleLocator(np.pi / 4))
     axs[1].xaxis.set_minor_locator(plt.MultipleLocator(np.pi / 12))
     axs[1].xaxis.set_major_formatter(
@@ -174,6 +184,12 @@ def process(yaml_file, plot_all=False):
             plot_utils.multiple_formatter(denominator=4,
                                           number=np.pi,
                                           latex='\pi')))
+
+    axs[1].ticklabel_format(axis="y",
+                            style="sci",
+                            scilimits=(0, 0),
+                            useOffset=False)
+    plt.tight_layout()
     if plot_all:
         plt.show()
 
@@ -189,7 +205,7 @@ def process(yaml_file, plot_all=False):
     #        smooth[i][j] = alpha * steps[i][j] + (1 - alpha) * smooth[i][j - 1]
 
     # Plot individual trajectories ----------------------------------------------------------------------
-    if plot_all:
+    if False: #plot_all:
         fig, axs = plt.subplots()
         fig.suptitle('Individual trajectories')
         for i in range(0, len(ns)):

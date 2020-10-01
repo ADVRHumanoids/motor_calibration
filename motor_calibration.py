@@ -28,26 +28,26 @@ plot_utils.print_alberobotics()
 # test phase angles
 print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
 #if False:
-if os.system(cmd1 + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during phase-calib' + plot_utils.bcolors.ENDC)
+#if os.system(cmd1 + ' ' + config_file):
+#    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during phase-calib' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended phase-calib successfully" + plot_utils.bcolors.ENDC)
 
 # process extracted data
 print(plot_utils.bcolors.OKBLUE + "[i] Processing phase data" + plot_utils.bcolors.ENDC)
-config_file2 = process_phase.process(yaml_file=config_file, plot_all=False)
+#config_file2 = process_phase.process(yaml_file=config_file, plot_all=False)
 
 # Upload to motor the best phase angle
 print(plot_utils.bcolors.OKBLUE + "[i] Sending phase angle to motor using set-phase" +  plot_utils.bcolors.ENDC)
 #if False:
-if os.system(cmd2 + ' ' + config_file2):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-phase' + plot_utils.bcolors.ENDC)
+#if os.system(cmd2 + ' ' + config_file2):
+#    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-phase' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended set-phase successfully" + plot_utils.bcolors.ENDC)
 
 # test phase angles
 print(plot_utils.bcolors.OKBLUE + "[i] Starting ripple-calib" + plot_utils.bcolors.ENDC)
 #if False:
-if os.system(cmd3 + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during ripple-calib' + plot_utils.bcolors.ENDC)
+#if os.system(cmd3 + ' ' + config_file):
+#    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during ripple-calib' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended ripple-calib successfully" + plot_utils.bcolors.ENDC)
 
 # process extracted data
