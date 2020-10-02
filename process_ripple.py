@@ -10,6 +10,7 @@ from matplotlib import pyplot as plt
 
 #import costum
 import plot_utils
+import fit_sine
 
 def process(yaml_file, plot_all=False):
     repeat = 3
@@ -127,13 +128,14 @@ def process(yaml_file, plot_all=False):
     tq2 = [statistics.median(v) for v in temp22]
 
     fig, axs = plt.subplots(2)
-    #fig.suptitle('median')
+    fig.suptitle('Torque offset & ripple')
 
 
 
     #axs[0].plot(ts1, tq1, label='Torque$_{raw}$', color='k', marker='.')
     for t, q in zip(temp11, temp21):
-        axs[0].plot(t, q, color='#1f77b4')
+        axs[0].plot(t, q, label='raw data', color='#5fb7f4')
+    axs[0].plot(ts1, tq1, label='median', color='#1f77b4', marker='.')
     axs[0].set_ylabel('torque (Nm)')
     axs[0].set_xlabel('position (rad)')
     axs[0].grid(b=True, which='major', axis='y', linestyle='-')
@@ -158,11 +160,59 @@ def process(yaml_file, plot_all=False):
                                           number=np.pi,
                                           latex='\pi')))
     axs[0].ticklabel_format(axis="y",
-                            style="sci",
+                            style="plain",#"sci",
                             scilimits=(0, 0),
                             useOffset=False)
 
-    axs[1].plot(ts1, tq1, label='Torque$_{raw}$', color='#1f77b4', marker='.')
+    # fit multisine waves
+
+    ts_exended = [ph - 2 * np.pi for ph in ts1]
+    ts_exended += ts1
+    ts_exended += [t + 2 * np.pi for t in ts1]
+    tq_exended = tq1 + tq1 + tq1
+
+    s1 = fit_sine.fit_sin1(ts_exended, tq_exended)
+    s2 = fit_sine.fit_sin2(ts_exended, tq_exended)
+    s3 = fit_sine.fit_sin3(ts_exended, tq_exended)
+
+    sin1 = [
+        fit_sine.sinfunc(t=t,
+                         A1=s1["a1"],
+                         w1=s1["w1"],
+                         p1=s1["p1"],
+                         c=s1["c"])
+        for t in ts1
+    ]
+    sin2 = [
+        fit_sine.sin2func(t=t,
+                          A1=s2["a1"],
+                          A2=s2["a2"],
+                          w1=s2["w1"],
+                          w2=s2["w2"],
+                          p1=s2["p1"],
+                          p2=s2["p2"],
+                          c=s2["c"])
+        for t in ts1
+    ]
+    sin3 = [
+        fit_sine.sin3func(t=t,
+                          A1=s3["a1"],
+                          A2=s3["a2"],
+                          A3=s3["a3"],
+                          w1=s3["w1"],
+                          w2=s3["w2"],
+                          w3=s3["w3"],
+                          p1=s3["p1"],
+                          p2=s3["p2"],
+                          p3=s3["p3"],
+                          c=s3["c"])
+        for t in ts1
+    ]
+
+    axs[1].plot(ts1, tq1, label='median', marker='.')
+    axs[1].plot(ts1, sin1, label='1 sin', marker='.')
+    axs[1].plot(ts1, sin2, label='2 sin', marker='.')
+    axs[1].plot(ts1, sin3, label='3 sin', marker='.')
 
     plt_pad = (max(tq1) - min(tq1)) * 0.02
     axs[1].set_ylim(min(tq1) - plt_pad, max(tq1) + plt_pad)
@@ -186,9 +236,10 @@ def process(yaml_file, plot_all=False):
                                           latex='\pi')))
 
     axs[1].ticklabel_format(axis="y",
-                            style="sci",
+                            style="plain",#"sci",
                             scilimits=(0, 0),
                             useOffset=False)
+    axs[1].legend()
     plt.tight_layout()
     if plot_all:
         plt.show()
