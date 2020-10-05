@@ -30,7 +30,7 @@ def process(yaml_file, plot_all=False):
         motor_name = yaml_dict['name']
     else:
         motor_name = 'Torque offset & ripple'
-
+        
     # read data from latest file --------------------------------------------------------------
     list_of_files = glob.glob('/logs/*-ripple_calib.log')
     file = max(list_of_files, key=os.path.getctime)
@@ -185,6 +185,14 @@ def process(yaml_file, plot_all=False):
     s1 = fit_sine.fit_sin1(ts_exended, tq_exended)
     s2 = fit_sine.fit_sin2(ts_exended, tq_exended)
     s3 = fit_sine.fit_sin3(ts_exended, tq_exended)
+    print("1 sin:" + str(s1["c"]) + " + " + str(s1["a1"]) + "*sin(" + str(s1["w1"]) + "*t + " + str(s1["p1"]) + ")")
+    print("2 sin:" + str(s2["c"]) + " + " + str(s2["a1"]) + "*sin(" + str(s2["w1"]) + "*t + " + str(s2["p1"]) + ") + " + \
+                                            str(s2["a2"]) + "*sin(" + str(s2["w2"]) + "*t + " + str(s2["p2"]) + ")")
+    print("3 sin:" + str(s3["c"]) + " + " + str(s3["a1"]) + "*sin(" + str(s3["w1"]) + "*t + " + str(s3["p1"]) + ") + " + \
+                                            str(s3["a2"]) + "*sin(" + str(s3["w2"]) + "*t + " + str(s3["p2"]) + ") + " + \
+                                            str(s3["a3"]) + "*sin(" + str(s3["w3"]) + "*t + " + str(s3["p3"]) + ")")
+
+
 
     sin1 = [
         fit_sine.sinfunc(t=t,
@@ -219,6 +227,15 @@ def process(yaml_file, plot_all=False):
                           c=s3["c"])
         for t in ts1
     ]
+
+    #compute Root Mean Squared Error
+    RMSE=[]
+    RMSE.append(np.sqrt(np.mean(np.square([tq1[v] - sin1[v] for v in range(0,len(tq1))]))))
+    RMSE.append(np.sqrt(np.mean(np.square([tq1[v] - sin2[v] for v in range(0,len(tq1))]))))
+    RMSE.append(np.sqrt(np.mean(np.square([tq1[v] - sin3[v] for v in range(0,len(tq1))]))))
+    RMSE =[v/min(RMSE) for v in RMSE]
+
+    print('RMSE:' + str(RMSE))
 
     axs[1].plot(ts1, tq1, label='median', marker='.')
     axs[1].plot(ts1, sin1, label='1 sin', marker='.')
