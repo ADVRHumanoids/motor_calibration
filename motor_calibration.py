@@ -32,8 +32,8 @@ config_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/
 plot_utils.print_alberobotics()
 
 print(plot_utils.bcolors.OKBLUE + "[i] Starting test-pdo" + plot_utils.bcolors.ENDC)
-if os.system(cmd0 + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during test-pdo' + plot_utils.bcolors.ENDC)
+#if os.system(cmd0 + ' ' + config_file):
+#    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during test-pdo' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended test-pdo successfully" + plot_utils.bcolors.ENDC)
 
 # test phase angles

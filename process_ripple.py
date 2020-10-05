@@ -7,6 +7,7 @@ import yaml
 import statistics
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
 
 #import costum
 import plot_utils
@@ -25,6 +26,10 @@ def process(yaml_file, plot_all=False):
         trj_error = yaml_dict['trj_error']
     if 'pos_step' in yaml_dict:
         pos_step = yaml_dict['pos_step']
+    if 'name' in yaml_dict:
+        motor_name = yaml_dict['name']
+    else:
+        motor_name = 'Torque offset & ripple'
 
     # read data from latest file --------------------------------------------------------------
     list_of_files = glob.glob('/logs/*-ripple_calib.log')
@@ -60,7 +65,7 @@ def process(yaml_file, plot_all=False):
                 label='Motor Vel',
                 color='b',
                 marker='.')
-    #axs[0].set_ylim(min(torque), max(torque))
+    axs[0].set_ylim(min(torque), max(torque))
     axs[0].set_ylabel('torque (Nm)')
     axs[0].set_xlabel('timestamp (ns)')
     axs[0].grid(b=True, which='major', axis='y', linestyle='-')
@@ -128,7 +133,7 @@ def process(yaml_file, plot_all=False):
     tq2 = [statistics.median(v) for v in temp22]
 
     fig, axs = plt.subplots(2)
-    fig.suptitle('Torque offset & ripple')
+    fig.suptitle(motor_name)
 
 
 
@@ -163,6 +168,12 @@ def process(yaml_file, plot_all=False):
                             style="plain",#"sci",
                             scilimits=(0, 0),
                             useOffset=False)
+
+    legend_elements = [
+        Line2D([0], [0], label='Raw torque', color='#5fb7f4'),
+        Line2D([0], [0], label='Median',     color='#1f77b4', marker='.'),
+    ]
+    axs[0].legend(handles=legend_elements, loc='best')
 
     # fit multisine waves
 
