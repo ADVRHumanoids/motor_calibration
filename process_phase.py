@@ -27,7 +27,7 @@ def process(yaml_file, plot_all=False):
         steps_2 = yaml_dict['id_number_of_steps']
 
     # read data from latest file --------------------------------------------------------------
-    list_of_files = glob.glob('/logs/*-ripple_calib.log')
+    list_of_files = glob.glob('/logs/*-phase_calib.log')
     file = max(list_of_files, key=os.path.getctime)
     print(plot_utils.bcolors.OKBLUE + '[i] Reading file: ' + file + plot_utils.bcolors.ENDC)
 
