@@ -18,6 +18,8 @@ import plot_utils
 
 ## Parameters:
 # path to phase-calib script to test phase angle and log data
+cmd0 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/test-pdo/test-pdo')
+# path to phase-calib script to test phase angle and log data
 cmd1 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib/phase-calib')
 # path to set-phase script to set the optimized value to the motor
 cmd2 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/set-phase/set-phase')
@@ -28,6 +30,11 @@ config_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/
 
 #print logo
 plot_utils.print_alberobotics()
+
+print(plot_utils.bcolors.OKBLUE + "[i] Starting test-pdo" + plot_utils.bcolors.ENDC)
+if os.system(cmd0 + ' ' + config_file):
+    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during test-pdo' + plot_utils.bcolors.ENDC)
+print(plot_utils.bcolors.OKBLUE + "[i] Ended test-pdo successfully" + plot_utils.bcolors.ENDC)
 
 # test phase angles
 print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
