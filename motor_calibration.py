@@ -5,6 +5,10 @@ import sys
 import glob
 import yaml
 import numpy as np
+# tell matplotlib not to try to load up GTK as it returns errors over ssh
+import matplotlib
+matplotlib.use("Agg")
+
 from matplotlib import pyplot as plt
 
 #import costum files
