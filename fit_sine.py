@@ -47,8 +47,8 @@ def fit_sin2(tt, yy):
     guess_a = numpy.std(yy) * 2.**0.5
     guess_c = numpy.mean(yy)
     guess = numpy.array([
-        guess_a, guess_a / 2,
-        guess_w, guess_w * 2,
+        guess_a/2, guess_a / 4,
+        guess_w  , guess_w * 2,
         0., 0.,
         guess_c
     ])
@@ -92,7 +92,7 @@ def fit_sin3(tt, yy):
     guess_c = numpy.mean(yy)
     guess = numpy.array([
         guess_a / 2, guess_a / 4, guess_a / 8,
-        guess_w,     guess_w * 2, guess_w * 4,
+        guess_w    , guess_w * 2, guess_w * 4,
         0., 0., 0.,
         guess_c
     ])
