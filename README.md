@@ -6,6 +6,16 @@ Scripts to calibrate mc_centAC motors. **This is a development branch, don't exp
 
 - the **mt_calib** branch of [**ec_master_app**](https://github.com/ADVRHumanoids/ec_master_app) must be compiled.
 
+- Some extra packages must be installed:
+
+```shell
+sudo apt install ffmpeg
+sudo apt install libportaudio2
+pip3 install sounddevice
+pip3 install ffmpeg
+pip3 install pydub
+```
+
 ## Usage
 
 To use it edit the path of the parameters of different from the one listed below:

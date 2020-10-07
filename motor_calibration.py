@@ -4,7 +4,9 @@ import os
 import sys
 import glob
 import yaml
+import time
 import numpy as np
+import sounddevice as sd
 # tell matplotlib not to try to load up GTK as it returns errors over ssh
 from matplotlib import use as plt_use
 plt_use("Agg")
@@ -14,9 +16,13 @@ from matplotlib import pyplot as plt
 import process_phase
 import process_ripple
 import process_friction
+import record_utils
 import plot_utils
 
 ## Parameters:
+# audio settings
+duration = 600  # second
+device = 0      # a list can be found with: python3 -m sounddevice
 # path to test-pdo
 cmd0 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/test-pdo/test-pdo')
 # path to phase-calib to test phase angle and log data
@@ -39,11 +45,26 @@ if os.system(cmd0 + ' ' + config_file):
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during test-pdo' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended test-pdo successfully" + plot_utils.bcolors.ENDC)
 
-## test phase angles
+#Start recording audio
+print(plot_utils.bcolors.OKBLUE + '[i] Starting audio recording' + plot_utils.bcolors.ENDC)
+fps, channels = record_utils.get_device_info(device)
+start_time = time.time()
+rec = sd.rec(duration * fps, samplerate=fps, channels=channels, device=device)
+# test phase angles
 print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
 if os.system(cmd1 + ' ' + config_file):
+    sd.stop()
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during phase-calib' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended phase-calib successfully" + plot_utils.bcolors.ENDC)
+
+# Stop and save audio file
+sd.stop()
+elapsed_time = time.time() - start_time
+list_of_files = glob.glob('/logs/*-phase_calib.log')
+file = max(list_of_files, key=os.path.getctime)[:-4] + '-audio'
+print(plot_utils.bcolors.OKBLUE + '[i] Saving audio recording' + plot_utils.bcolors.ENDC)
+record_utils.write_compressed(file, rec[:int(elapsed_time * fps)])
+record_utils.write_wav(file, rec[:int(elapsed_time * fps)])
 
 # process extracted data
 print(plot_utils.bcolors.OKBLUE + "[i] Processing phase data" + plot_utils.bcolors.ENDC)
