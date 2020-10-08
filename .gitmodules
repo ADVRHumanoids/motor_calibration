@@ -1,0 +1,4 @@
+[submodule "friction_calibration_tool"]
+	path = friction_calibration_tool
+	url = git@github.com:ADVRHumanoids/tree-calibration-tool.git
+	branch = mt_calib
