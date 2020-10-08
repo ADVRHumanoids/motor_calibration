@@ -1,10 +1,10 @@
 # motor_calibration
 
-Scripts to calibrate mc_centAC motors.
+Scripts to calibrate mc_centAC motors. **This is a development branch, don't expect the code here to work well.**
 
 ## Requirements
 
-- the mt_stable branch of [ec_master_app](https://github.com/ADVRHumanoids/ec_master_app) must be compiled.
+- the **mt_calib** branch of [**ec_master_app**](https://github.com/ADVRHumanoids/ec_master_app) must be compiled.
 
 ## Usage
 
