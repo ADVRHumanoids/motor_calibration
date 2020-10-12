@@ -324,8 +324,9 @@ def process(yaml_file, plot_all=False):
     plt.savefig(fname=pdf_name, format='pdf')
 
     # Save result
-    out_dict['calib_phase']['optimized_angle'] = float(fit_angle)
-    yaml_name = file[:-4] + '.yaml'
+    out_dict['log']['name'] = file[:-15]
+    yaml_name =  file[:-15] + 'results.yaml'
+    out_dict['results']['phase']['phase_angle'] = float(fit_angle)
     print('Saving yaml as: ' + yaml_name)
     with open(yaml_name, 'w', encoding='utf8') as outfile:
         yaml.dump(out_dict, outfile, default_flow_style=False, allow_unicode=True)

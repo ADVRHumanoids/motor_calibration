@@ -47,11 +47,11 @@ print(plot_utils.bcolors.OKBLUE + "[i] Ended phase-calib successfully" + plot_ut
 
 # process extracted data
 print(plot_utils.bcolors.OKBLUE + "[i] Processing phase data" + plot_utils.bcolors.ENDC)
-config_file2 = process_phase.process(yaml_file=config_file, plot_all=False)
+config_file = process_phase.process(yaml_file=config_file, plot_all=False)
 
 ## Upload to motor the best phase angle
 print(plot_utils.bcolors.OKBLUE + "[i] Sending phase angle to motor using set-phase" +  plot_utils.bcolors.ENDC)
-if os.system(cmd2 + ' ' + config_file2):
+if os.system(cmd2 + ' ' + config_file):
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-phase' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended set-phase successfully" + plot_utils.bcolors.ENDC)
 
@@ -63,7 +63,7 @@ print(plot_utils.bcolors.OKBLUE + "[i] Ended ripple-calib successfully" + plot_u
 
 # process extracted data
 print(plot_utils.bcolors.OKBLUE + "[i] Processing ripple data" + plot_utils.bcolors.ENDC)
-process_ripple.process(yaml_file=config_file, plot_all=False)
+config_file = process_ripple.process(yaml_file=config_file, plot_all=False)
 
 ## Inertia and friction identification
 print(plot_utils.bcolors.OKBLUE + "[i] Starting friction-calib" + plot_utils.bcolors.ENDC)

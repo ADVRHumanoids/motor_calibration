@@ -30,7 +30,7 @@ def process(yaml_file, plot_all=False):
         motor_name = yaml_dict['name']
     else:
         motor_name = 'Torque offset & ripple'
-        
+
     # read data from latest file --------------------------------------------------------------
     list_of_files = glob.glob('/logs/*-ripple_calib.log')
     file = max(list_of_files, key=os.path.getctime)
@@ -176,7 +176,6 @@ def process(yaml_file, plot_all=False):
     axs[0].legend(handles=legend_elements, loc='best')
 
     # fit multisine waves
-
     ts_exended = [ph - 2 * np.pi for ph in ts1]
     ts_exended += ts1
     ts_exended += [t + 2 * np.pi for t in ts1]
@@ -277,45 +276,48 @@ def process(yaml_file, plot_all=False):
     print('Saving graph as: ' + pdf_name)
     plt.savefig(fname=pdf_name, format='pdf')
 
-    #alpha = 0.1
-    #smooth = steps
-    #for i in range(0, len(steps)):
-    #    for j in range(1, len(steps[i])):
-    #        smooth[i][j] = alpha * steps[i][j] + (1 - alpha) * smooth[i][j - 1]
+    # savign results
+    if yaml_file[-12:] != 'results.yaml':
+        yaml_file = file[:-16] + 'results.yaml'
+    print('Saving results in: ' + yaml_file)
 
-    # Plot individual trajectories ----------------------------------------------------------------------
-    if False: #plot_all:
-        fig, axs = plt.subplots()
-        fig.suptitle('Individual trajectories')
-        for i in range(0, len(ns)):
-            axs.plot(ns[i], steps[i], label='diff')
-            axs.plot(ns[i], smooth[i], label='diff')
+    RMSE_o = RMSE
+    RMSE_o.sort()
+    for id_0 in range(0, len(RMSE)):
+        if RMSE(id_0) == RMSE_o[0]:
+            num_of_sinusoids = id_0 + 1
+            break
+    out_dict['results']['ripple']['num_of_sinusoids'] = num_of_sinusoids
 
-        axs.set_ylabel('motor_vel (mrad/s)')
-        axs.set_xlabel('timestamp (ns)')
+    if num_of_sinusoids == 1:
+        out_dict['results']['ripple']['c']  = s1['c']
+        out_dict['results']['ripple']['A1'] = s1['A1']
+        out_dict['results']['ripple']['w1'] = s1['w1']
+        out_dict['results']['ripple']['p1'] = s1['p1']
+    if num_of_sinusoids == 2:
+        out_dict['results']['ripple']['c']  = s2['c']
+        out_dict['results']['ripple']['A1'] = s2['A1']
+        out_dict['results']['ripple']['w1'] = s2['w1']
+        out_dict['results']['ripple']['p1'] = s2['p1']
+        out_dict['results']['ripple']['A2'] = s2['A2']
+        out_dict['results']['ripple']['w2'] = s2['w2']
+        out_dict['results']['ripple']['p2'] = s2['p2']
+    if num_of_sinusoids == 3:
+        out_dict['results']['ripple']['c']  = s3['c']
+        out_dict['results']['ripple']['A1'] = s3['A1']
+        out_dict['results']['ripple']['w1'] = s3['w1']
+        out_dict['results']['ripple']['p1'] = s3['p1']
+        out_dict['results']['ripple']['A2'] = s3['A2']
+        out_dict['results']['ripple']['w2'] = s3['w2']
+        out_dict['results']['ripple']['p2'] = s3['p2']
+        out_dict['results']['ripple']['A3'] = s3['A3']
+        out_dict['results']['ripple']['w3'] = s3['w3']
+        out_dict['results']['ripple']['p3'] = s3['p3']
 
-        axs.grid(b=True, which='major', axis='y', linestyle='-')
-        axs.grid(b=True, which='minor', axis='y', linestyle=':')
-        axs.yaxis.set_major_locator(
-            plt.MultipleLocator((max(motor_vel) - min(motor_vel)) * 1.1 / 6))
-        axs.yaxis.set_minor_locator(
-            plt.MultipleLocator((max(motor_vel) - min(motor_vel)) * 1.1 / 18))
-        axs.spines['top'].set_visible(False)
-        axs.spines['right'].set_visible(False)
-        axs.spines['left'].set_visible(False)
-        plt.show()
-
-    # evaluate performance of each trajectory -----------------------------------------------------------
-    #score = [[], [], []]
-    #for i in range(0, len(steps)):
-    #    score[0].append(phase[i])
-    #    tmp = sum(steps[i][0:int(len(steps[i]) / 2)])
-    #    if tmp > 0:
-    #        score[1].append((max(steps[i][:]) - min(steps[i][:])) / 2)
-    #        score[2].append((max(smooth[i][:]) - min(smooth[i][:])) / 2)
-    #    else:
-    #        score[1].append(-(max(steps[i][:]) - min(steps[i][:])) / 2)
-    #        score[2].append(-(max(smooth[i][:]) - min(smooth[i][:])) / 2)
+    with open(yaml_file, 'w', encoding='utf8') as outfile:
+        yaml.dump(out_dict, outfile, default_flow_style=False, allow_unicode=True)
+    
+    return yaml_file
 
 if __name__ == "__main__":
     plot_utils.print_alberobotics()
