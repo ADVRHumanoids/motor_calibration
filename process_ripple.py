@@ -127,10 +127,17 @@ def process(yaml_file, plot_all=False):
                 temp12.append([v for v in pos_motor[trj_v[j - 1] : trj_v[j]]])
                 temp22.append([v for v in torque[trj_v[j - 1] : trj_v[j]]])
 
-    ts1 = [statistics.median(v) for v in temp11]
-    tq1 = [statistics.median(v) for v in temp21]
-    ts2 = [statistics.median(v) for v in temp12]
-    tq2 = [statistics.median(v) for v in temp22]
+    ts1 = [sum(v)/len(v) for v in temp11]
+    tq1 = [sum(v)/len(v) for v in temp21]
+    key_order = np.argsort(ts1)
+    ts1.sort()
+    tq1 = [tq1[key] for key in key_order]
+
+    ts2 = [sum(v)/len(v) for v in temp12]
+    tq2 = [sum(v)/len(v) for v in temp22]
+    key_order = np.argsort(ts2)
+    ts2.sort()
+    tq2 = [tq2[key] for key in key_order]
 
     fig, axs = plt.subplots(2)
     fig.suptitle(motor_name)
@@ -279,44 +286,45 @@ def process(yaml_file, plot_all=False):
     # savign results
     if yaml_file[-12:] != 'results.yaml':
         yaml_file = file[:-16] + 'results.yaml'
-    print('Saving results in: ' + yaml_file)
+        out_dict['results']={}
 
-    RMSE_o = RMSE
-    RMSE_o.sort()
-    for id_0 in range(0, len(RMSE)):
-        if RMSE(id_0) == RMSE_o[0]:
-            num_of_sinusoids = id_0 + 1
-            break
+    #for id_0 in range(0, len(RMSE)):
+    #    if RMSE[id_0] == min(RMSE):
+    #        num_of_sinusoids = id_0 + 1
+    #        break
+    num_of_sinusoids = int(np.argsort(RMSE)[0])+1
+
+    out_dict['results']['ripple']={}
     out_dict['results']['ripple']['num_of_sinusoids'] = num_of_sinusoids
-
     if num_of_sinusoids == 1:
-        out_dict['results']['ripple']['c']  = s1['c']
-        out_dict['results']['ripple']['A1'] = s1['A1']
-        out_dict['results']['ripple']['w1'] = s1['w1']
-        out_dict['results']['ripple']['p1'] = s1['p1']
+        out_dict['results']['ripple']['c']  = float(s1['c'])
+        out_dict['results']['ripple']['a1'] = float(s1['a1'])
+        out_dict['results']['ripple']['w1'] = float(s1['w1'])
+        out_dict['results']['ripple']['p1'] = float(s1['p1'])
     if num_of_sinusoids == 2:
-        out_dict['results']['ripple']['c']  = s2['c']
-        out_dict['results']['ripple']['A1'] = s2['A1']
-        out_dict['results']['ripple']['w1'] = s2['w1']
-        out_dict['results']['ripple']['p1'] = s2['p1']
-        out_dict['results']['ripple']['A2'] = s2['A2']
-        out_dict['results']['ripple']['w2'] = s2['w2']
-        out_dict['results']['ripple']['p2'] = s2['p2']
+        out_dict['results']['ripple']['c']  = float(s2['c'])
+        out_dict['results']['ripple']['a1'] = float(s2['a1'])
+        out_dict['results']['ripple']['w1'] = float(s2['w1'])
+        out_dict['results']['ripple']['p1'] = float(s2['p1'])
+        out_dict['results']['ripple']['a2'] = float(s2['a2'])
+        out_dict['results']['ripple']['w2'] = float(s2['w2'])
+        out_dict['results']['ripple']['p2'] = float(s2['p2'])
     if num_of_sinusoids == 3:
-        out_dict['results']['ripple']['c']  = s3['c']
-        out_dict['results']['ripple']['A1'] = s3['A1']
-        out_dict['results']['ripple']['w1'] = s3['w1']
-        out_dict['results']['ripple']['p1'] = s3['p1']
-        out_dict['results']['ripple']['A2'] = s3['A2']
-        out_dict['results']['ripple']['w2'] = s3['w2']
-        out_dict['results']['ripple']['p2'] = s3['p2']
-        out_dict['results']['ripple']['A3'] = s3['A3']
-        out_dict['results']['ripple']['w3'] = s3['w3']
-        out_dict['results']['ripple']['p3'] = s3['p3']
+        out_dict['results']['ripple']['c']  = float(s3['c'])
+        out_dict['results']['ripple']['a1'] = float(s3['a1'])
+        out_dict['results']['ripple']['w1'] = float(s3['w1'])
+        out_dict['results']['ripple']['p1'] = float(s3['p1'])
+        out_dict['results']['ripple']['a2'] = float(s3['a2'])
+        out_dict['results']['ripple']['w2'] = float(s3['w2'])
+        out_dict['results']['ripple']['p2'] = float(s3['p2'])
+        out_dict['results']['ripple']['a3'] = float(s3['a3'])
+        out_dict['results']['ripple']['w3'] = float(s3['w3'])
+        out_dict['results']['ripple']['p3'] = float(s3['p3'])
 
+    print('Saving results in: ' + yaml_file)
     with open(yaml_file, 'w', encoding='utf8') as outfile:
         yaml.dump(out_dict, outfile, default_flow_style=False, allow_unicode=True)
-    
+
     return yaml_file
 
 if __name__ == "__main__":

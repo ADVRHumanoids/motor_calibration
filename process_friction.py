@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 #import costum
+import fit_sine
 import plot_utils
 from friction_calibration_tool.utils_module import motor_eqn_models as motor_terms
 from friction_calibration_tool.utils_module.logimport import dict_from_log
@@ -36,6 +37,45 @@ def move_log(new_name='null'):
         sys.exit(plot_utils.bcolors.FAIL +
                  u'[\u2717] Error while copying logs' +
                  plot_utils.bcolors.ENDC)
+
+
+def remove_ripple(tor, pos, yaml_file='NULL'):
+
+    if yaml_file == 'NULL':
+        list_of_files = glob.glob('/logs/*.yaml')
+        yaml_file = max(list_of_files, key=os.path.getctime)
+    with open(yaml_file, 'r') as stream:
+        yaml_dict = yaml.safe_load(stream)['results']['ripple']
+
+    num_of_sinusoids = 0
+    if 'num_of_sinusoids' in yaml_dict:
+        num_of_sinusoids = yaml_dict['num_of_sinusoids']
+    if num_of_sinusoids > 0:
+        c  = yaml_dict['c' ]
+        A1 = yaml_dict['a1']
+        w1 = yaml_dict['w1']
+        p1 = yaml_dict['p1']
+    if num_of_sinusoids > 1:
+        A2 = yaml_dict['a2']
+        w2 = yaml_dict['w2']
+        p2 = yaml_dict['p2']
+    if num_of_sinusoids > 2:
+        A3 = yaml_dict['a3']
+        w3 = yaml_dict['w3']
+        p3 = yaml_dict['p3']
+
+    if num_of_sinusoids == 1:
+        for t, p in zip(tor, pos):
+            t = t - fit_sine.sinfunc(p, A1, w1, p1, c)
+    elif num_of_sinusoids == 2:
+        for t, p in zip(tor, pos):
+            t = t - fit_sine.sin2func(p, A1, A2, w1, w2, p1, p2, c)
+    elif num_of_sinusoids == 3:
+        for t, p in zip(tor, pos):
+            t = t - fit_sine.sin3func(p, A1, A2, A3, w1, w2, w3, p1, p2, p3, c)
+    else:
+        sys.exit('[remove_ripple] no sine fuction existinf for num_of_sinusoids = ' + num_of_sinusoids)
+    return tor
 
 
 def process(yaml_file, plot_all=False):
@@ -75,17 +115,20 @@ def process(yaml_file, plot_all=False):
                                      gear_ratio=80,
                                      k_tau=0.040250)
 
+    ## remove torque ripple and offset
+    motor.torque = remove_ripple(motor.torque, motor.pos)
+
     ## Linear model
     inertia = motor_terms.MotorInertia()
     viscous_frict = motor_terms.AsymmetricViscousFriction(gamma=1000.0)
     coulomb_strib_frict = motor_terms.AsymmetricCoulombStribeckFriction(gamma=1000.0)
-    tau_off = motor_terms.TauOffset()
+    #tau_off = motor_terms.TauOffset()
 
     regressor = LinearRegressor(huber_regr_strategy)
     linear_regression = LinearRegression(regressor)
     simulation = Simulation()
 
-    models = [inertia, coulomb_strib_frict, viscous_frict, tau_off]
+    models = [inertia, coulomb_strib_frict, viscous_frict]#, tau_off]
     for model in models:
         linear_regression.add_model(model)
 
@@ -104,7 +147,7 @@ def process(yaml_file, plot_all=False):
 
     print('param_dict:')
     for k, v in param_dict.items():
-        print('\t'+str(k)+str(v))
+        print('\t' + str(k) + '\t' + str(v))
 
     fig, axs = plt.subplots()
     axs.plot(err + Xp, color='#ff7f0e', label='Reference')
@@ -283,14 +326,14 @@ def process(yaml_file, plot_all=False):
     axs.axvline(0, color='black', lw=1.2)
     axs.axhline(0, color='black', lw=1.2)
 
-    axs.set_xlim(0, len(Xp))
-    plt_pad = (max(Xp) - min(Xp)) * 0.02
-    axs.set_ylim(min(Xp) - plt_pad, max(Xp) + plt_pad)
+    axs.set_xlim(0, len(motor.pos[:-2]))
+    plt_pad = (max(motor.pos[:-2]) - min(motor.pos[:-2])) * 0.05
+    axs.set_ylim(min(motor.pos[:-2]) - plt_pad, max(motor.pos[:-2]) + plt_pad)
     axs.grid(b=True, which='major', axis='y', linestyle='-')
     axs.grid(b=True, which='minor', axis='y', linestyle=':')
     axs.grid(b=True, which='major', axis='x', linestyle=':')
-    axs.xaxis.set_major_locator(plt.MultipleLocator(len(Xp) / 5))
-    axs.xaxis.set_minor_locator(plt.MultipleLocator(len(Xp) / 15))
+    axs.xaxis.set_major_locator(plt.MultipleLocator(len(motor.pos[:-2]) / 5))
+    axs.xaxis.set_minor_locator(plt.MultipleLocator(len(motor.pos[:-2]) / 15))
     axs.spines['top'].set_visible(False)
     axs.spines['right'].set_visible(False)
     axs.spines['left'].set_visible(False)
