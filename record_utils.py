@@ -7,13 +7,13 @@ def write_compressed(fname, data):
     f = gzip.GzipFile(fname+".npy.gz", "w")
     np.save(file=f, arr=data)
     f.close()
-    print('saving compressed audio as: ' + fname + ".npy.gz")
+    print('[i] saving compressed audio as: ' + fname + ".npy.gz")
 
 
-def write_wav(fname,data):
+def write_wav(fname, data, samplerate=48000):
+    print('[i] saving audio as: ' + fname + '.wav')
     scaled = np.int16(data / np.max(np.abs(data)) * 32767)
-    scipy_write(fname + '.wav', 44100, scaled)
-    print('saving audio as: ' + fname + '.wav')
+    scipy_write(fname + '.wav', samplerate, scaled)
 
 def read_compressed(fname: str):
     f = gzip.GzipFile(fname, "r")

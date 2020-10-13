@@ -16,6 +16,7 @@ from matplotlib import pyplot as plt
 import process_phase
 import process_ripple
 import process_friction
+import process_audio
 import record_utils
 import plot_utils
 
@@ -45,26 +46,12 @@ if os.system(cmd0 + ' ' + config_file):
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during test-pdo' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended test-pdo successfully" + plot_utils.bcolors.ENDC)
 
-#Start recording audio
-print(plot_utils.bcolors.OKBLUE + '[i] Starting audio recording' + plot_utils.bcolors.ENDC)
-fps, channels = record_utils.get_device_info(device)
-start_time = time.time()
-rec = sd.rec(duration * fps, samplerate=fps, channels=channels, device=device)
 # test phase angles
 print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
 if os.system(cmd1 + ' ' + config_file):
     sd.stop()
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during phase-calib' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended phase-calib successfully" + plot_utils.bcolors.ENDC)
-
-# Stop and save audio file
-sd.stop()
-elapsed_time = time.time() - start_time
-list_of_files = glob.glob('/logs/*-phase_calib.log')
-file = max(list_of_files, key=os.path.getctime)[:-4] + '-audio'
-print(plot_utils.bcolors.OKBLUE + '[i] Saving audio recording' + plot_utils.bcolors.ENDC)
-record_utils.write_compressed(file, rec[:int(elapsed_time * fps)])
-record_utils.write_wav(file, rec[:int(elapsed_time * fps)])
 
 # process extracted data
 print(plot_utils.bcolors.OKBLUE + "[i] Processing phase data" + plot_utils.bcolors.ENDC)
@@ -86,11 +73,28 @@ print(plot_utils.bcolors.OKBLUE + "[i] Ended ripple-calib successfully" + plot_u
 print(plot_utils.bcolors.OKBLUE + "[i] Processing ripple data" + plot_utils.bcolors.ENDC)
 config_file = process_ripple.process(yaml_file=config_file, plot_all=False)
 
+#Start recording audio
+print(plot_utils.bcolors.OKBLUE + '[i] Starting audio recording' + plot_utils.bcolors.ENDC)
+fps, channels = record_utils.get_device_info(device)
+start_time = time.time()
+rec = sd.rec(duration * fps, samplerate=fps, channels=channels, device=device)
+
 ## Inertia and friction identification
 print(plot_utils.bcolors.OKBLUE + "[i] Starting friction-calib" + plot_utils.bcolors.ENDC)
 if os.system(cmd4 + ' ' + config_file):
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during friction-calib' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended friction-calib successfully" + plot_utils.bcolors.ENDC)
+
+# Stop and save audio file
+sd.stop()
+elapsed_time = time.time() - start_time
+list_of_files = glob.glob('/logs/*-phase_calib.log')
+file = max(list_of_files, key=os.path.getctime)[:-16] + '-audio'
+print(plot_utils.bcolors.OKBLUE + '[i] Saving audio recording' + plot_utils.bcolors.ENDC)
+record_utils.write_compressed(file, rec[:int(elapsed_time * fps)])
+record_utils.write_wav(file, rec[:int(elapsed_time * fps)])
+print(plot_utils.bcolors.OKBLUE + '[i] Processing audio' + plot_utils.bcolors.ENDC)
+process_audio.process()
 
 # process extracted data
 print(plot_utils.bcolors.OKBLUE + "[i] Processing friction data" + plot_utils.bcolors.ENDC)
