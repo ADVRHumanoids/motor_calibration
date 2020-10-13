@@ -28,10 +28,9 @@ def move_log(new_name='null'):
     list_of_files = glob.glob('/tmp/CentAcESC_*_log.txt')
     tmp_file = max(list_of_files, key=os.path.getctime)
     if new_name == 'null':
-        list_of_files = glob.glob('/logs/*-ripple_calib.log')
-        last_log = max(list_of_files, key=os.path.getctime)[:-31]
-        new_name = last_log + datetime.now().strftime(
-            "%Y%m%d%H%M%S") + '-friction-calib.log'
+        list_of_files = glob.glob('/logs/*-results.yaml')
+        last_log = max(list_of_files, key=os.path.getctime)
+        new_name = last_log[:-13] + '-friction-calib.log'
     cmd = 'cp ' + tmp_file + ' ' + new_name
     if os.system(cmd):
         sys.exit(plot_utils.bcolors.FAIL +
@@ -78,12 +77,57 @@ def remove_ripple(tor, pos, yaml_file='NULL'):
     return tor
 
 
+def get_ripple(pos, yaml_file='NULL'):
+
+    if yaml_file == 'NULL':
+        list_of_files = glob.glob('/logs/*.yaml')
+        yaml_file = max(list_of_files, key=os.path.getctime)
+    with open(yaml_file, 'r') as stream:
+        yaml_dict = yaml.safe_load(stream)['results']['ripple']
+
+    num_of_sinusoids = 0
+    if 'num_of_sinusoids' in yaml_dict:
+        num_of_sinusoids = yaml_dict['num_of_sinusoids']
+    if num_of_sinusoids > 0:
+        c = yaml_dict['c']
+        A1 = yaml_dict['a1']
+        w1 = yaml_dict['w1']
+        p1 = yaml_dict['p1']
+    if num_of_sinusoids > 1:
+        A2 = yaml_dict['a2']
+        w2 = yaml_dict['w2']
+        p2 = yaml_dict['p2']
+    if num_of_sinusoids > 2:
+        A3 = yaml_dict['a3']
+        w3 = yaml_dict['w3']
+        p3 = yaml_dict['p3']
+
+    t=[]
+    if num_of_sinusoids == 1:
+        for p in pos:
+            t.append(fit_sine.sinfunc(p, A1, w1, p1, c))
+    elif num_of_sinusoids == 2:
+        for p in pos:
+            t.append(fit_sine.sin2func(p, A1, A2, w1, w2, p1, p2, c))
+    elif num_of_sinusoids == 3:
+        for p in pos:
+            t.append(fit_sine.sin3func(p, A1, A2, A3, w1, w2, w3, p1, p2, p3, c))
+    else:
+        sys.exit(
+            '[remove_ripple] no sine fuction existinf for num_of_sinusoids = '
+            + num_of_sinusoids)
+    return t
+
+
 def process(yaml_file, plot_all=False):
 
     freq0 = 0.1
     samp_freq = 1000
     num_of_sinusoids = 5
     trans_time = 5.0
+    gear_ratio = 80
+    k_tau = 0.078
+    gamma=1000.0
 
     # read parameters from yaml file
     with open(yaml_file, 'r') as stream:
@@ -99,6 +143,13 @@ def process(yaml_file, plot_all=False):
         trans_time = yaml_dict['trans_time']
     if 'secs' in yaml_dict:
         secs = yaml_dict['secs']
+    if 'gear_ratio' in yaml_dict:
+        gear_ratio = yaml_dict['gear_ratio']
+    if 'k_tau' in yaml_dict:
+        k_tau = yaml_dict['k_tau']
+    if 'gamma' in yaml_dict:
+        gamma = yaml_dict['gamma']
+
 
     trj_info = TrjInfo(freq0=freq0,
                        num_of_sinusoids=num_of_sinusoids,
@@ -108,20 +159,45 @@ def process(yaml_file, plot_all=False):
     # load data from log
     list_of_files = glob.glob('/logs/*-friction-calib.log')
     fname = max(list_of_files, key=os.path.getctime)
-    #motor = MotorData.from_motor_log(fname,
     data_dict = dict_from_log(fname)
-    motor = MotorData.from_dict (    data_dict,
-                                     trj_info,
-                                     gear_ratio=80,
-                                     k_tau=0.040250)
+    motor = MotorData.from_dict (data_dict,
+                                 trj_info,
+                                 gear_ratio,
+                                 k_tau)
 
     ## remove torque ripple and offset
-    motor.torque = remove_ripple(motor.torque, motor.pos)
+    tor0 = motor.torque
+    ripple = get_ripple(motor.pos)
+
+    fig, axs = plt.subplots(2)
+    axs[0].plot(motor.torque, color='#1f77b4', label='PDO')
+    axs[0].plot(ripple      , color='#ff7f0e', label='ripple')
+    axs[0].legend()
+    axs[0].set_ylabel('torque (Nm)')
+    axs[0].set_xlabel('Timestamp (ms)')
+    axs[0].spines['top'].set_visible(False)
+    axs[0].spines['right'].set_visible(False)
+    axs[0].spines['left'].set_visible(False)
+
+    motor.torque = motor.torque - ripple
+    axs[1].plot(motor.torque, color='#2ca02c', label='diff')
+    axs[1].legend()
+    axs[1].set_ylabel('torque (Nm)')
+    axs[1].set_xlabel('Timestamp (ms)')
+    axs[1].spines['top'].set_visible(False)
+    axs[1].spines['right'].set_visible(False)
+    axs[1].spines['left'].set_visible(False)
+
+
+    # Save the graph
+    pdf_name = fname[:-4] + '-0.pdf'
+    print('Saving graph as: ' + pdf_name)
+    plt.savefig(fname=pdf_name, format='pdf')
 
     ## Linear model
     inertia = motor_terms.MotorInertia()
-    viscous_frict = motor_terms.AsymmetricViscousFriction(gamma=1000.0)
-    coulomb_strib_frict = motor_terms.AsymmetricCoulombStribeckFriction(gamma=1000.0)
+    viscous_frict = motor_terms.AsymmetricViscousFriction(gamma)
+    coulomb_strib_frict = motor_terms.AsymmetricCoulombStribeckFriction(gamma)
     #tau_off = motor_terms.TauOffset()
 
     regressor = LinearRegressor(huber_regr_strategy)
@@ -321,19 +397,19 @@ def process(yaml_file, plot_all=False):
     plt.legend()
     axs.legend()
 
-    axs.set_ylabel('Position (rad)')
+    axs.set_ylabel('Position$_{link}$ (rad)')
     axs.set_xlabel('Timestamp (ms)')
     axs.axvline(0, color='black', lw=1.2)
     axs.axhline(0, color='black', lw=1.2)
 
     axs.set_xlim(0, len(motor.pos[:-2]))
-    plt_pad = (max(motor.pos[:-2]) - min(motor.pos[:-2])) * 0.05
-    axs.set_ylim(min(motor.pos[:-2]) - plt_pad, max(motor.pos[:-2]) + plt_pad)
+    plt_pad = (max(motor.pos) - min(motor.pos)) * 0.05
+    axs.set_ylim(min(motor.pos) - plt_pad, max(motor.pos) + plt_pad)
     axs.grid(b=True, which='major', axis='y', linestyle='-')
     axs.grid(b=True, which='minor', axis='y', linestyle=':')
     axs.grid(b=True, which='major', axis='x', linestyle=':')
-    axs.xaxis.set_major_locator(plt.MultipleLocator(len(motor.pos[:-2]) / 5))
-    axs.xaxis.set_minor_locator(plt.MultipleLocator(len(motor.pos[:-2]) / 15))
+    axs.xaxis.set_major_locator(plt.MultipleLocator(len(motor.pos) / 5))
+    axs.xaxis.set_minor_locator(plt.MultipleLocator(len(motor.pos) / 15))
     axs.spines['top'].set_visible(False)
     axs.spines['right'].set_visible(False)
     axs.spines['left'].set_visible(False)
@@ -346,6 +422,30 @@ def process(yaml_file, plot_all=False):
         print('Saving graph as: ' + pdf_name)
         plt.savefig(fname=pdf_name, format='pdf')
 
+        # savign results
+    if yaml_file[-12:] != 'results.yaml':
+        yaml_file = file[:-16] + 'results.yaml'
+        out_dict['results']={}
+
+    out_dict['results']['motor_inertia'] = param_dict['motor_inertia']
+    
+    out_dict['results']['asymmetric_viscous_friction'] = {}
+    out_dict['results']['asymmetric_viscous_friction']['dv_plus'] = param_dict['dv_plus']
+    out_dict['results']['asymmetric_viscous_friction']['dv_minus'] = param_dict['dv_minus']
+
+    out_dict['results']['asymmetric_coulomb_and_stribeck_friction'] = {}
+    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['dc_plus'] = param_dict['dc_plus']
+    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['dc_minus'] = param_dict['dc_minus']
+    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['sigma_plus'] = param_dict['sigma_plus']
+    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['sigma_minus'] = param_dict['sigma_minus']
+
+    print('Saving results in: ' + yaml_file)
+    with open(yaml_file, 'w', encoding='utf8') as outfile:
+        yaml.dump(out_dict, outfile, default_flow_style=False, allow_unicode=True)
+
+    return yaml_file
+
 if __name__ == "__main__":
-    config_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
+    list_of_files = glob.glob('/logs/*-results.yaml')
+    config_file = max(list_of_files, key=os.path.getctime)
     process(config_file)

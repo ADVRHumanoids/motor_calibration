@@ -29,9 +29,9 @@ def process(yaml_file, plot_all=False):
     # read data from latest file --------------------------------------------------------------
     list_of_files = glob.glob('/logs/*-phase_calib.log')
     file = max(list_of_files, key=os.path.getctime)
-    print(plot_utils.bcolors.OKBLUE + '[i] Reading file: ' + file + plot_utils.bcolors.ENDC)
+    print('[i] Reading file: ' + file)
 
-    print(plot_utils.bcolors.OKBLUE + '[i] Post-processing ph_angle data' + plot_utils.bcolors.ENDC)
+    print('[i] Post-processing ph_angle data')
     # '%u64\t%u\t%u\t%u\t%u\t%f\t%f\t%d\t%f\t%f\t%f'
     ns = [np.uint64(x.split('\t')[0]) for x in open(file).readlines()]
     curr_type = [np.uint32(x.split('\t')[1]) for x in open(file).readlines()]
