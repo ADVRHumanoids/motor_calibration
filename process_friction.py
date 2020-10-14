@@ -77,13 +77,12 @@ def remove_ripple(tor, pos, yaml_file='NULL'):
     return tor
 
 
-def get_ripple(pos, yaml_file='NULL'):
+def get_ripple(pos, yaml_dict='NULL'):
 
-    if yaml_file == 'NULL':
+    if yaml_dict == 'NULL':
         list_of_files = glob.glob('/logs/*.yaml')
         yaml_file = max(list_of_files, key=os.path.getctime)
-    with open(yaml_file, 'r') as stream:
-        yaml_dict = yaml.safe_load(stream)['results']['ripple']
+        yaml_dict = yaml.safe_load(open(yaml_file, 'r'))['results']['ripple']
 
     num_of_sinusoids = 0
     if 'num_of_sinusoids' in yaml_dict:
@@ -113,14 +112,14 @@ def get_ripple(pos, yaml_file='NULL'):
         for p in pos:
             t.append(fit_sine.sin3func(p, A1, A2, A3, w1, w2, w3, p1, p2, p3, c))
     else:
+        for k, v in yaml_dict.items():
+            print('\t' + str(k) + '\t' + str(v))
         sys.exit(
-            '[remove_ripple] no sine fuction existinf for num_of_sinusoids = '
-            + num_of_sinusoids)
+            '[get_ripple] no sine fuction existing for num_of_sinusoids = '
+            + str(num_of_sinusoids))
     return t
 
-
-def process(yaml_file, plot_all=False):
-
+def process(yaml_file, log_file='null', plot_all=False):
     freq0 = 0.1
     samp_freq = 1000
     num_of_sinusoids = 5
@@ -157,9 +156,10 @@ def process(yaml_file, plot_all=False):
                        trans_time=trans_time)
 
     # load data from log
-    list_of_files = glob.glob('/logs/*-friction-calib.log')
-    fname = max(list_of_files, key=os.path.getctime)
-    data_dict = dict_from_log(fname)
+    if log_file=='null':
+        list_of_files = glob.glob('/logs/*-friction-calib.log')
+        log_file = max(list_of_files, key=os.path.getctime)
+    data_dict = dict_from_log(log_file)
     motor = MotorData.from_dict (data_dict,
                                  trj_info,
                                  gear_ratio,
@@ -167,7 +167,11 @@ def process(yaml_file, plot_all=False):
 
     ## remove torque ripple and offset
     tor0 = motor.torque
-    ripple = get_ripple(motor.pos)
+    if yaml_file[-12:] == 'results.yaml':
+        print('using data from given yaml: ' + yaml_file)
+        ripple = get_ripple(pos=motor.pos, yaml_dict=out_dict['results']['ripple'])
+    else:
+        ripple = get_ripple(motor.pos)
 
     fig, axs = plt.subplots(2)
     axs[0].plot(motor.torque, color='#1f77b4', label='PDO')
@@ -190,7 +194,7 @@ def process(yaml_file, plot_all=False):
 
 
     # Save the graph
-    pdf_name = fname[:-4] + '-0.pdf'
+    pdf_name = log_file[:-4] + '-0.pdf'
     print('Saving graph as: ' + pdf_name)
     plt.savefig(fname=pdf_name, format='pdf')
 
@@ -225,6 +229,12 @@ def process(yaml_file, plot_all=False):
     for k, v in param_dict.items():
         print('\t' + str(k) + '\t' + str(v))
 
+    # RMSE
+    RMSE = np.sqrt(np.mean(np.square(err)))
+    print('RMSE: {:.4f}'.format(RMSE) +
+          ' ({:.2f}'.format(100 * RMSE / (max(err + Xp) - min(err + Xp))) +
+          '% of amplitude of reference)')
+
     fig, axs = plt.subplots()
     axs.plot(err + Xp, color='#ff7f0e', label='Reference')
     axs.plot(      Xp, color='#1f77b4', label='Linear Model')
@@ -237,7 +247,7 @@ def process(yaml_file, plot_all=False):
 
     axs.set_xlim(0, len(Xp))
     plt_pad = (max(Xp) - min(Xp)) * 0.02
-    axs.set_ylim(min(Xp) - plt_pad, max(Xp) + plt_pad)
+    axs.set_ylim(min(err + Xp) - plt_pad, max(err + Xp) + plt_pad)
     axs.grid(b=True, which='major', axis='y', linestyle='-')
     axs.grid(b=True, which='minor', axis='y', linestyle=':')
     axs.grid(b=True, which='major', axis='x', linestyle=':')
@@ -286,7 +296,7 @@ def process(yaml_file, plot_all=False):
         plt.show()
     else:
         # Save the graph
-        pdf_name = fname[:-4] + '-1.pdf'
+        pdf_name = log_file[:-4] + '-1.pdf'
         print('Saving graph as: ' + pdf_name)
         plt.savefig(fname=pdf_name, format='pdf')
 
@@ -373,7 +383,7 @@ def process(yaml_file, plot_all=False):
     #     plt.show()
     # else:
     #     # Save the graph
-    #     pdf_name = fname[:-4] + '-2.pdf'
+    #     pdf_name = log_file[:-4] + '-2.pdf'
     #     print('Saving graph as: ' + pdf_name)
     #     plt.savefig(fname=pdf_name, format='pdf')
 
@@ -418,26 +428,28 @@ def process(yaml_file, plot_all=False):
         plt.show()
     else:
         # Save the graph
-        pdf_name = fname[:-4] + '.pdf'
+        pdf_name = log_file[:-4] + '.pdf'
         print('Saving graph as: ' + pdf_name)
         plt.savefig(fname=pdf_name, format='pdf')
 
         # savign results
     if yaml_file[-12:] != 'results.yaml':
-        yaml_file = file[:-16] + 'results.yaml'
+        yaml_file = log_file[:-16] + 'results.yaml'
         out_dict['results']={}
 
-    out_dict['results']['motor_inertia'] = param_dict['motor_inertia']
-    
+    out_dict['results']['motor_inertia'] = float(param_dict['motor_inertia'])
+
     out_dict['results']['asymmetric_viscous_friction'] = {}
-    out_dict['results']['asymmetric_viscous_friction']['dv_plus'] = param_dict['dv_plus']
-    out_dict['results']['asymmetric_viscous_friction']['dv_minus'] = param_dict['dv_minus']
+    out_dict['results']['asymmetric_viscous_friction']['dv_plus'] = float(param_dict['dv_plus'])
+    out_dict['results']['asymmetric_viscous_friction']['dv_minus'] = float(param_dict['dv_minus'])
 
     out_dict['results']['asymmetric_coulomb_and_stribeck_friction'] = {}
-    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['dc_plus'] = param_dict['dc_plus']
-    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['dc_minus'] = param_dict['dc_minus']
-    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['sigma_plus'] = param_dict['sigma_plus']
-    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['sigma_minus'] = param_dict['sigma_minus']
+    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['dc_plus'] = float(param_dict['dc_plus'])
+    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['dc_minus'] = float(param_dict['dc_minus'])
+    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['sigma_plus'] = float(param_dict['sigma_plus'])
+    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['sigma_minus'] = float(param_dict['sigma_minus'])
+
+    out_dict['results']['friction_model_RMSE'] = float(RMSE)
 
     print('Saving results in: ' + yaml_file)
     with open(yaml_file, 'w', encoding='utf8') as outfile:
