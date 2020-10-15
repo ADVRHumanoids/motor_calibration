@@ -39,6 +39,10 @@ if os.system(cmd0 + ' ' + config_file):
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during test-pdo' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended test-pdo successfully" + plot_utils.bcolors.ENDC)
 
+#get updated yaml file
+list_of_files = glob.glob('/logs/*.yaml')
+config_file = max(list_of_files, key=os.path.getctime)
+
 ## test phase angles
 print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
 if os.system(cmd1 + ' ' + config_file):
