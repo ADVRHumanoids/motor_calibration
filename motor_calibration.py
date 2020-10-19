@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 import process_phase
 import process_ripple
 import process_friction
+import process_report
 import plot_utils
 
 ## Parameters:
@@ -78,6 +79,9 @@ print(plot_utils.bcolors.OKBLUE + "[i] Ended friction-calib successfully" + plot
 # process extracted data
 print(plot_utils.bcolors.OKBLUE + "[i] Processing friction data" + plot_utils.bcolors.ENDC)
 process_friction.move_log()
-process_friction.process(yaml_file=config_file, plot_all=False)
+config_file = process_friction.process(yaml_file=config_file, plot_all=False)
+
+print(plot_utils.bcolors.OKBLUE + "[i] Genereating the report" + plot_utils.bcolors.ENDC)
+config_file = process_report.process(yaml_file=config_file)
 
 print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)
