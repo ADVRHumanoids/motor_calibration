@@ -120,6 +120,7 @@ def get_ripple(pos, yaml_dict='NULL'):
     return t
 
 def process(yaml_file, log_file='null', plot_all=False):
+    plt.rcParams['savefig.dpi'] = 300
     freq0 = 0.1
     samp_freq = 1000
     num_of_sinusoids = 5
@@ -194,9 +195,9 @@ def process(yaml_file, log_file='null', plot_all=False):
 
 
     # Save the graph
-    pdf_name = log_file[:-4] + '-0.pdf'
-    print('Saving graph as: ' + pdf_name)
-    plt.savefig(fname=pdf_name, format='pdf')
+    fig_name = log_file[:-4] + '-0.png'
+    print('Saving graph as: ' + fig_name)
+    plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
     ## Linear model
     inertia = motor_terms.MotorInertia()
@@ -231,8 +232,9 @@ def process(yaml_file, log_file='null', plot_all=False):
 
     # RMSE
     RMSE = np.sqrt(np.mean(np.square(err)))
+    RMSE_perc = 100 * RMSE / (max(err + Xp) - min(err + Xp))
     print('RMSE: {:.4f}'.format(RMSE) +
-          ' ({:.2f}'.format(100 * RMSE / (max(err + Xp) - min(err + Xp))) +
+          ' ({:.2f}'.format(RMSE_perc) +
           '% of amplitude of reference)')
 
     fig, axs = plt.subplots()
@@ -296,9 +298,9 @@ def process(yaml_file, log_file='null', plot_all=False):
         plt.show()
     else:
         # Save the graph
-        pdf_name = log_file[:-4] + '-1.pdf'
-        print('Saving graph as: ' + pdf_name)
-        plt.savefig(fname=pdf_name, format='pdf')
+        fig_name = log_file[:-4] + '-1.png'
+        print('Saving graph as: ' + fig_name)
+        plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
     # ## Nonlinear model
     # non_linear_regression = NonLinearRegression()
@@ -383,9 +385,9 @@ def process(yaml_file, log_file='null', plot_all=False):
     #     plt.show()
     # else:
     #     # Save the graph
-    #     pdf_name = log_file[:-4] + '-2.pdf'
-    #     print('Saving graph as: ' + pdf_name)
-    #     plt.savefig(fname=pdf_name, format='pdf')
+    #     fig_name = log_file[:-4] + '-2.png'
+    #     print('Saving graph as: ' + fig_name)
+    #     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
     ## Run simulation
     print('Running simulation')
@@ -401,8 +403,8 @@ def process(yaml_file, log_file='null', plot_all=False):
     # pos_non, vel_non = simulation.solve_ODE()
 
     fig, axs = plt.subplots()
-    axs.plot(motor.pos[:-2], label='original')
-    axs.plot(pos_lin, label='Linear Model')
+    axs.plot(motor.pos[:-2],color='#ff7f0e', label='original')
+    axs.plot(pos_lin,       color='#1f77b4', label='Linear Model')
     # axs.plot(pos_non, label='Nonlinear Model')
     plt.legend()
     axs.legend()
@@ -428,28 +430,30 @@ def process(yaml_file, log_file='null', plot_all=False):
         plt.show()
     else:
         # Save the graph
-        pdf_name = log_file[:-4] + '.pdf'
-        print('Saving graph as: ' + pdf_name)
-        plt.savefig(fname=pdf_name, format='pdf')
+        fig_name = log_file[:-4] + '.png'
+        print('Saving graph as: ' + fig_name)
+        plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
         # savign results
     if yaml_file[-12:] != 'results.yaml':
         yaml_file = log_file[:-16] + 'results.yaml'
         out_dict['results']={}
 
-    out_dict['results']['motor_inertia'] = float(param_dict['motor_inertia'])
+    out_dict['results']['friction'] ={}
+    out_dict['results']['friction']['motor_inertia'] = float(param_dict['motor_inertia'])
 
-    out_dict['results']['asymmetric_viscous_friction'] = {}
-    out_dict['results']['asymmetric_viscous_friction']['dv_plus'] = float(param_dict['dv_plus'])
-    out_dict['results']['asymmetric_viscous_friction']['dv_minus'] = float(param_dict['dv_minus'])
+    out_dict['results']['friction']['asymmetric_viscous_friction'] = {}
+    out_dict['results']['friction']['asymmetric_viscous_friction']['dv_plus'] = float(param_dict['dv_plus'])
+    out_dict['results']['friction']['asymmetric_viscous_friction']['dv_minus'] = float(param_dict['dv_minus'])
 
-    out_dict['results']['asymmetric_coulomb_and_stribeck_friction'] = {}
-    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['dc_plus'] = float(param_dict['dc_plus'])
-    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['dc_minus'] = float(param_dict['dc_minus'])
-    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['sigma_plus'] = float(param_dict['sigma_plus'])
-    out_dict['results']['asymmetric_coulomb_and_stribeck_friction']['sigma_minus'] = float(param_dict['sigma_minus'])
+    out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction'] = {}
+    out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction']['dc_plus'] = float(param_dict['dc_plus'])
+    out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction']['dc_minus'] = float(param_dict['dc_minus'])
+    out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction']['sigma_plus'] = float(param_dict['sigma_plus'])
+    out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction']['sigma_minus'] = float(param_dict['sigma_minus'])
 
-    out_dict['results']['friction_model_RMSE'] = float(RMSE)
+    out_dict['results']['friction']['friction_model_RMSE'] = float(RMSE)
+    out_dict['results']['friction']['friction_model_RMSE_perc'] = float(RMSE_perc)
 
     print('Saving results in: ' + yaml_file)
     with open(yaml_file, 'w', encoding='utf8') as outfile:

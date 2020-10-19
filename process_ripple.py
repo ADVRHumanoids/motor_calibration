@@ -14,6 +14,7 @@ import plot_utils
 import fit_sine
 
 def process(yaml_file, plot_all=False):
+    plt.rcParams['savefig.dpi'] = 300
     repeat = 3
     steps_1 = 13
     steps_2 = 6
@@ -57,7 +58,7 @@ def process(yaml_file, plot_all=False):
     # Plot full test --------------------------------------------------------------
 
     fig, axs = plt.subplots(2)
-    fig.suptitle('RAW')
+    #fig.suptitle('RAW')
 
     plt_max = max([max(torque), -min(torque)]) * 1.1
 
@@ -140,7 +141,7 @@ def process(yaml_file, plot_all=False):
     tq2 = [tq2[key] for key in key_order]
 
     fig, axs = plt.subplots(2)
-    fig.suptitle(motor_name)
+    #fig.suptitle(motor_name)
 
 
 
@@ -243,7 +244,7 @@ def process(yaml_file, plot_all=False):
 
     print('RMSE:' + str(RMSE))
 
-    axs[1].plot(ts1, tq1, label='median', marker='.')
+    axs[1].plot(ts1, tq1, label='mean', marker='.')
     axs[1].plot(ts1, sin1, label='1 sin', marker='.')
     axs[1].plot(ts1, sin2, label='2 sin', marker='.')
     axs[1].plot(ts1, sin3, label='3 sin', marker='.')
@@ -279,9 +280,9 @@ def process(yaml_file, plot_all=False):
         plt.show()
 
     # Save the graph
-    pdf_name = file[:-4] + '.pdf'
-    print('Saving graph as: ' + pdf_name)
-    plt.savefig(fname=pdf_name, format='pdf')
+    fig_name = file[:-4] + '.png'
+    print('Saving graph as: ' + fig_name)
+    plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
     # savign results
     if yaml_file[-12:] != 'results.yaml':

@@ -11,6 +11,7 @@ from matplotlib import pyplot as plt
 import plot_utils
 
 def process(yaml_file, plot_all=False):
+    plt.rcParams['savefig.dpi'] = 300
     repeat = 3
     steps_1 = 13
     steps_2 = 6
@@ -284,7 +285,7 @@ def process(yaml_file, plot_all=False):
                        linestyle='None')
 
     # make plot pretty
-    fig.suptitle('Result: ph_angle = {:.3f}'.format(fit_angle))
+    #fig.suptitle('Result: ph_angle = {:.3f}'.format(fit_angle))
     axs.set_ylabel('max velocity (mrad/s)')
     axs.set_xlabel('phase angle (rad)')
     axs.grid(b=True, which='major', axis='x', linestyle=':')
@@ -319,9 +320,9 @@ def process(yaml_file, plot_all=False):
           plot_utils.bcolors.ENDC)
 
     # Save the graph
-    pdf_name = file[:-4] + '.pdf'
-    print('Saving graph as: ' + pdf_name)
-    plt.savefig(fname=pdf_name, format='pdf')
+    fig_name = file[:-4] + '.png'
+    print('Saving graph as: ' + fig_name)
+    plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
     # Save result
     if 'name' in out_dict['log']:
