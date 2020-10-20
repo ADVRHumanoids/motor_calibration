@@ -231,10 +231,11 @@ def process(yaml_file, log_file='null', plot_all=False):
         print('\t' + str(k) + '\t' + str(v))
 
     # RMSE
+    # TODO: add NRMSE
     RMSE = np.sqrt(np.mean(np.square(err)))
-    RMSE_perc = 100 * RMSE / (max(err + Xp) - min(err + Xp))
+    NRMSE = RMSE / np.std(Xp + err)
     print('RMSE: {:.4f}'.format(RMSE) +
-          ' ({:.2f}'.format(RMSE_perc) +
+          ' ({:.2f}'.format(NRMSE) +
           '% of amplitude of reference)')
 
     fig, axs = plt.subplots()
@@ -453,7 +454,7 @@ def process(yaml_file, log_file='null', plot_all=False):
     out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction']['sigma_minus'] = float(param_dict['sigma_minus'])
 
     out_dict['results']['friction']['friction_model_RMSE'] = float(RMSE)
-    out_dict['results']['friction']['friction_model_RMSE_perc'] = float(RMSE_perc)
+    out_dict['results']['friction']['friction_model_NRMSE'] = float(NRMSE)
 
     print('Saving results in: ' + yaml_file)
     with open(yaml_file, 'w', encoding='utf8') as outfile:
