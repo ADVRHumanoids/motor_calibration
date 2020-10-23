@@ -13,7 +13,12 @@ from matplotlib.lines import Line2D
 import plot_utils
 import fit_sine
 
-def process(yaml_file, plot_all=False):
+def process(yaml_file='NULL', plot_all=False):
+    # load results
+    if yaml_file == 'NULL':
+        list_of_files = glob.glob('/logs/*.yaml')
+        yaml_file = max(list_of_files, key=os.path.getctime)
+    
     plt.rcParams['savefig.dpi'] = 300
     repeat = 3
     steps_1 = 13

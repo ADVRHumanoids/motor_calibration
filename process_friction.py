@@ -24,10 +24,10 @@ from friction_calibration_tool.utils_module.simulation import Simulation
 from friction_calibration_tool.utils_module.trajectory import TrjInfo
 
 
-def move_log(new_name='null'):
+def move_log(new_name='NULL'):
     list_of_files = glob.glob('/tmp/CentAcESC_*_log.txt')
     tmp_file = max(list_of_files, key=os.path.getctime)
-    if new_name == 'null':
+    if new_name == 'NULL':
         list_of_files = glob.glob('/logs/*-results.yaml')
         last_log = max(list_of_files, key=os.path.getctime)
         new_name = last_log[:-13] + '-friction-calib.log'
@@ -119,7 +119,13 @@ def get_ripple(pos, yaml_dict='NULL'):
             + str(num_of_sinusoids))
     return t
 
-def process(yaml_file, log_file='null', plot_all=False):
+def process(yaml_file='NULL', log_file='NULL', plot_all=False):
+    # load results
+    if yaml_file == 'NULL':
+        list_of_files = glob.glob('/logs/*.yaml')
+        yaml_file = max(list_of_files, key=os.path.getctime)
+        print('Loading: ' + yaml_file)
+
     plt.rcParams['savefig.dpi'] = 300
     freq0 = 0.1
     samp_freq = 1000
