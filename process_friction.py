@@ -78,7 +78,6 @@ def remove_ripple(tor, pos, yaml_file='NULL'):
 
 
 def get_ripple(pos, yaml_dict='NULL'):
-
     if yaml_dict == 'NULL':
         list_of_files = glob.glob('/logs/*.yaml')
         yaml_file = max(list_of_files, key=os.path.getctime)
@@ -131,14 +130,23 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     samp_freq = 1000
     num_of_sinusoids = 5
     trans_time = 5.0
-    gear_ratio = 80
-    k_tau = 0.078
-    gamma=1000.0
+    init_dv = 1.0
+    init_dc = 2.0
+    init_sigma = 4.0
+
 
     # read parameters from yaml file
     with open(yaml_file, 'r') as stream:
         out_dict = yaml.safe_load(stream)
         yaml_dict = out_dict['calib_friction']
+
+    # read parameters from yaml file
+    if 'location' in out_dict['log']:
+        len_loc = len(out_dict['loc']['location'])
+    else:
+        len_loc = len('/logs/')
+    motor_type = yaml_file[len_loc + 1:len_loc + 3]
+
     if 'freq0' in yaml_dict:
         freq0 = yaml_dict['freq0']
     if 'samp_freq' in yaml_dict:
@@ -149,13 +157,56 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
         trans_time = yaml_dict['trans_time']
     if 'secs' in yaml_dict:
         secs = yaml_dict['secs']
-    if 'gear_ratio' in yaml_dict:
+    if 'Motor_gear_ratio' in out_dict['results']['flash_params']:
+        gear_ratio = out_dict['results']['flash_params']['Motor_gear_ratio']
+    elif 'gear_ratio' in yaml_dict:
         gear_ratio = yaml_dict['gear_ratio']
-    if 'k_tau' in yaml_dict:
+    else:
+        gear_ratio = 80
+        print("no k_tau found, using default value: "+str(gear_ratio))
+    if 'motorTorqueConstant' in out_dict['results']['flash_params']:
+        k_tau = out_dict['results']['flash_params']['motorTorqueConstant']
+    elif 'k_tau' in yaml_dict:
         k_tau = yaml_dict['k_tau']
+    else:
+        k_tau = 0.078
+        print("no k_tau found, using default value: "+str(k_tau))
     if 'gamma' in yaml_dict:
         gamma = yaml_dict['gamma']
+    else:
+        gamma = 1000.0
 
+    #initial guesses,
+    inertia_dict = {'LI': 1.18, 'AV': 1.48, 'LE': 3.01, 'OR': 4.71, 'PO': 8.63, \
+                    'Li': 1.18, 'Av': 1.48, 'Le': 3.01, 'Or': 4.71, 'Po': 8.63, \
+                    'li': 1.18, 'av': 1.48, 'le': 3.01, 'or': 4.71, 'po': 8.63, \
+                    'lI': 1.18, 'aV': 1.48, 'lE': 3.01, 'oR': 4.71, 'pO': 8.63, }
+    if motor_type in inertia_dict:
+        warm_start = True
+        init_inertia = inertia_dict[motor_type] * gear_ratio * gear_ratio / 100000
+        if 'init_dv' in yaml_dict:
+            init_dv = yaml_dict['init_dv']
+        else:
+            init_dv = 1.0
+        if 'init_dc' in yaml_dict:
+            init_dc = yaml_dict['init_dc']
+        else:
+            init_dc = 2.0
+        if 'init_sigma' in yaml_dict:
+            init_sigma = yaml_dict['init_sigma']
+        else:
+            init_sigma = 4.0
+        bounds = ([0.75 * init_inertia,  0., 0.,  0., 0., 0., 0.], 
+                  [1.25 * init_inertia, 10.,10., 10.,10.,10.,10.])
+        print('bounds:' + str(bounds))
+    else:
+        print('Found no default values for motor type: ' + motor_type)
+        warm_start = False
+        init_dv = None
+        init_dc = None
+        init_sigma = None
+        init_inertia = None
+        bounds = ([0, np.inf])
 
     trj_info = TrjInfo(freq0=freq0,
                        num_of_sinusoids=num_of_sinusoids,
@@ -163,14 +214,16 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
                        trans_time=trans_time)
 
     # load data from log
-    if log_file=='null':
+    if log_file=='NULL':
         list_of_files = glob.glob('/logs/*-friction-calib.log')
         log_file = max(list_of_files, key=os.path.getctime)
+
+    print('Using log: ' + log_file)
     data_dict = dict_from_log(log_file)
-    motor = MotorData.from_dict (data_dict,
-                                 trj_info,
-                                 gear_ratio,
-                                 k_tau)
+    motor = MotorData.from_dict(motor_dict=data_dict,
+                                trj_info=trj_info,
+                                gear_ratio=gear_ratio,
+                                k_tau=k_tau)
 
     ## remove torque ripple and offset
     tor0 = motor.torque
@@ -186,6 +239,8 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     axs[0].legend()
     axs[0].set_ylabel('torque (Nm)')
     axs[0].set_xlabel('Timestamp (ms)')
+    axs[0].grid(b=True, which='major', axis='y', linestyle='-')
+    axs[0].grid(b=True, which='major', axis='x', linestyle=':')
     axs[0].spines['top'].set_visible(False)
     axs[0].spines['right'].set_visible(False)
     axs[0].spines['left'].set_visible(False)
@@ -195,23 +250,26 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     axs[1].legend()
     axs[1].set_ylabel('torque (Nm)')
     axs[1].set_xlabel('Timestamp (ms)')
+    axs[1].grid(b=True, which='major', axis='y', linestyle='-')
+    axs[1].grid(b=True, which='major', axis='x', linestyle=':')
     axs[1].spines['top'].set_visible(False)
     axs[1].spines['right'].set_visible(False)
     axs[1].spines['left'].set_visible(False)
 
 
     # Save the graph
+    plt.tight_layout()
     fig_name = log_file[:-4] + '-0.png'
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
     ## Linear model
-    inertia = motor_terms.MotorInertia()
-    viscous_frict = motor_terms.AsymmetricViscousFriction(gamma)
-    coulomb_strib_frict = motor_terms.AsymmetricCoulombStribeckFriction(gamma)
+    inertia = motor_terms.MotorInertia(init_inertia= init_inertia)
+    viscous_frict = motor_terms.AsymmetricViscousFriction(init_dv= init_dv, gamma= gamma)
+    coulomb_strib_frict = motor_terms.AsymmetricCoulombStribeckFriction(init_dc=init_dc, init_sigma=init_sigma, gamma=gamma)
     #tau_off = motor_terms.TauOffset()
 
-    regressor = LinearRegressor(huber_regr_strategy)
+    regressor = LinearRegressor(scipy_lsq_linear_strategy)#huber_regr_strategy)
     linear_regression = LinearRegression(regressor)
     simulation = Simulation()
 
@@ -222,8 +280,9 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     linear_regression.set_pos_vel_acc(motor.pos, motor.vel, motor.acc)
     linear_regression.set_samp_freq(trj_info.samp_freq)
     linear_regression.set_lhs(motor.tau_m)
-
-    param_dict = linear_regression.solve()
+    if warm_start:
+        print('Using values: '+ str([init_inertia, init_dv, init_dc, init_sigma, gamma]) +' for motor type: ' + motor_type)
+    param_dict = linear_regression.solve(warm_start=warm_start, bounds=bounds)
 
     err = linear_regression.get_prediction_error(equalized=False)
     _, X = linear_regression.get_y_and_regr_matrix(equalized=False)
@@ -237,12 +296,9 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
         print('\t' + str(k) + '\t' + str(v))
 
     # RMSE
-    # TODO: add NRMSE
     RMSE = np.sqrt(np.mean(np.square(err)))
     NRMSE = RMSE / np.std(Xp + err)
-    print('RMSE: {:.4f}'.format(RMSE) +
-          ' ({:.2f}'.format(NRMSE) +
-          '% of amplitude of reference)')
+    print('NRMSE: {NRMSE:.4f}\nRMSE: {RMSE:.4f}'.format(NRMSE=NRMSE, RMSE=RMSE))
 
     fig, axs = plt.subplots()
     axs.plot(err + Xp, color='#ff7f0e', label='Reference')
@@ -266,6 +322,7 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     axs.spines['right'].set_visible(False)
     axs.spines['left'].set_visible(False)
 
+    plt.tight_layout()
     if plot_all:
         plt.show()
 
@@ -353,6 +410,7 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     # axs.spines['right'].set_visible(False)
     # axs.spines['left'].set_visible(False)
 
+    # plt.tight_layout()
     # if plot_all:
     #     plt.show()
 
@@ -433,6 +491,7 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     axs.spines['right'].set_visible(False)
     axs.spines['left'].set_visible(False)
 
+    plt.tight_layout()
     if plot_all:
         plt.show()
     else:
@@ -449,15 +508,23 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     out_dict['results']['friction'] ={}
     out_dict['results']['friction']['motor_inertia'] = float(param_dict['motor_inertia'])
 
-    out_dict['results']['friction']['asymmetric_viscous_friction'] = {}
-    out_dict['results']['friction']['asymmetric_viscous_friction']['dv_plus'] = float(param_dict['dv_plus'])
-    out_dict['results']['friction']['asymmetric_viscous_friction']['dv_minus'] = float(param_dict['dv_minus'])
+    out_dict['results']['friction']['viscous_friction'] = {}
+    if 'dv' in param_dict:
+        out_dict['results']['friction']['viscous_friction']['dv_plus'] = float(param_dict['dv'])
+        out_dict['results']['friction']['viscous_friction']['dv_minus'] = float(param_dict['dv'])
+    else:
+        out_dict['results']['friction']['viscous_friction']['dv_plus'] = float(param_dict['dv_plus'])
+        out_dict['results']['friction']['viscous_friction']['dv_minus'] = float(param_dict['dv_minus'])
 
-    out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction'] = {}
-    out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction']['dc_plus'] = float(param_dict['dc_plus'])
-    out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction']['dc_minus'] = float(param_dict['dc_minus'])
-    out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction']['sigma_plus'] = float(param_dict['sigma_plus'])
-    out_dict['results']['friction']['asymmetric_coulomb_and_stribeck_friction']['sigma_minus'] = float(param_dict['sigma_minus'])
+    out_dict['results']['friction']['coulomb_and_stribeck_friction'] = {}
+    if 'dc' in param_dict:
+        out_dict['results']['friction']['coulomb_and_stribeck_friction']['dc_plus'] = float(param_dict['dc'])
+        out_dict['results']['friction']['coulomb_and_stribeck_friction']['dc_minus'] = float(param_dict['dc'])
+    else:
+        out_dict['results']['friction']['coulomb_and_stribeck_friction']['dc_plus'] = float(param_dict['dc_plus'])
+        out_dict['results']['friction']['coulomb_and_stribeck_friction']['dc_minus'] = float(param_dict['dc_minus'])
+    out_dict['results']['friction']['coulomb_and_stribeck_friction']['sigma_plus'] = float(param_dict['sigma_plus'])
+    out_dict['results']['friction']['coulomb_and_stribeck_friction']['sigma_minus'] = float(param_dict['sigma_minus'])
 
     out_dict['results']['friction']['friction_model_RMSE'] = float(RMSE)
     out_dict['results']['friction']['friction_model_NRMSE'] = float(NRMSE)
