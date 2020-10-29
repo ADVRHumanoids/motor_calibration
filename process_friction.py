@@ -11,6 +11,7 @@ from datetime import datetime
 #import costum
 import fit_sine
 import plot_utils
+from friction_calibration_tool.utils_module import freq_domain
 from friction_calibration_tool.utils_module import motor_eqn_models as motor_terms
 from friction_calibration_tool.utils_module.logimport import dict_from_log
 from friction_calibration_tool.utils_module.motor import MotorData
@@ -25,6 +26,7 @@ from friction_calibration_tool.utils_module.trajectory import TrjInfo
 
 
 def move_log(new_name='NULL'):
+    '''Moves lastest CentAcESC_*_log.txt log file to new_name location, default is taken'''
     list_of_files = glob.glob('/tmp/CentAcESC_*_log.txt')
     tmp_file = max(list_of_files, key=os.path.getctime)
     if new_name == 'NULL':
@@ -33,55 +35,18 @@ def move_log(new_name='NULL'):
         new_name = last_log[:-13] + '-friction-calib.log'
     cmd = 'cp ' + tmp_file + ' ' + new_name
     if os.system(cmd):
-        sys.exit(plot_utils.bcolors.FAIL +
-                 u'[\u2717] Error while copying logs' +
-                 plot_utils.bcolors.ENDC)
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error while copying logs' + plot_utils.bcolors.ENDC)
 
-
-def remove_ripple(tor, pos, yaml_file='NULL'):
-
-    if yaml_file == 'NULL':
-        list_of_files = glob.glob('/logs/*.yaml')
-        yaml_file = max(list_of_files, key=os.path.getctime)
-    with open(yaml_file, 'r') as stream:
-        yaml_dict = yaml.safe_load(stream)['results']['ripple']
-
-    num_of_sinusoids = 0
-    if 'num_of_sinusoids' in yaml_dict:
-        num_of_sinusoids = yaml_dict['num_of_sinusoids']
-    if num_of_sinusoids > 0:
-        c  = yaml_dict['c' ]
-        A1 = yaml_dict['a1']
-        w1 = yaml_dict['w1']
-        p1 = yaml_dict['p1']
-    if num_of_sinusoids > 1:
-        A2 = yaml_dict['a2']
-        w2 = yaml_dict['w2']
-        p2 = yaml_dict['p2']
-    if num_of_sinusoids > 2:
-        A3 = yaml_dict['a3']
-        w3 = yaml_dict['w3']
-        p3 = yaml_dict['p3']
-
-    if num_of_sinusoids == 1:
-        for t, p in zip(tor, pos):
-            t = t - fit_sine.sinfunc(p, A1, w1, p1, c)
-    elif num_of_sinusoids == 2:
-        for t, p in zip(tor, pos):
-            t = t - fit_sine.sin2func(p, A1, A2, w1, w2, p1, p2, c)
-    elif num_of_sinusoids == 3:
-        for t, p in zip(tor, pos):
-            t = t - fit_sine.sin3func(p, A1, A2, A3, w1, w2, w3, p1, p2, p3, c)
-    else:
-        sys.exit('[remove_ripple] no sine fuction existinf for num_of_sinusoids = ' + num_of_sinusoids)
-    return tor
-
-
-def get_ripple(pos, yaml_dict='NULL'):
-    if yaml_dict == 'NULL':
-        list_of_files = glob.glob('/logs/*.yaml')
-        yaml_file = max(list_of_files, key=os.path.getctime)
+def get_ripple(pos, yaml_='NULL'):
+    if isinstance(yaml_, dict):
+        pass
+    elif isinstance(yaml_, str):
+        if yaml_ == 'NULL':
+            list_of_files = glob.glob('/logs/*.yaml')
+            yaml_file = max(list_of_files, key=os.path.getctime)
         yaml_dict = yaml.safe_load(open(yaml_file, 'r'))['results']['ripple']
+    else:
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Unsupported type for given yaml' + plot_utils.bcolors.ENDC)
 
     num_of_sinusoids = 0
     if 'num_of_sinusoids' in yaml_dict:
@@ -103,13 +68,13 @@ def get_ripple(pos, yaml_dict='NULL'):
     t=[]
     if num_of_sinusoids == 1:
         for p in pos:
-            t.append(fit_sine.sinfunc(p, A1, w1, p1, c))
+            t.append(fit_sine.sine_1(p, A1, w1, p1, c))
     elif num_of_sinusoids == 2:
         for p in pos:
-            t.append(fit_sine.sin2func(p, A1, A2, w1, w2, p1, p2, c))
+            t.append(fit_sine.sine_2(p, A1, A2, w1, w2, p1, p2, c))
     elif num_of_sinusoids == 3:
         for p in pos:
-            t.append(fit_sine.sin3func(p, A1, A2, A3, w1, w2, w3, p1, p2, p3, c))
+            t.append(fit_sine.sine_3(p, A1, A2, A3, w1, w2, w3, p1, p2, p3, c))
     else:
         for k, v in yaml_dict.items():
             print('\t' + str(k) + '\t' + str(v))
@@ -117,6 +82,98 @@ def get_ripple(pos, yaml_dict='NULL'):
             '[get_ripple] no sine fuction existing for num_of_sinusoids = '
             + str(num_of_sinusoids))
     return t
+
+def remove_ripple(tor, pos, yaml_='NULL'):
+    ripple = get_ripple(pos, yaml_=yaml_)
+    new_tor = [t - r for t, r in zip(tor, ripple)]
+    return new_tor
+
+
+def get_from_log(log_file, yaml_file='NULL', remove_ripple=False, filter_type='NULL', filter_freq=None, samp_freq=None, plot_all=False):
+    data_dict = {
+        'time' :      [float(x.split('\t')[ 0]) / 1000000000 for x in open(log_file).readlines()],
+        'trj_cnt' :   [  int(x.split('\t')[ 1]) for x in open(log_file).readlines()],
+        'log_cnt' :   [  int(x.split('\t')[ 2]) for x in open(log_file).readlines()],
+        'loop_cnt' :  [  int(x.split('\t')[ 3]) for x in open(log_file).readlines()],
+        'pos_abs' :   [float(x.split('\t')[ 4]) for x in open(log_file).readlines()],
+        'link_pos' :  [float(x.split('\t')[ 5]) for x in open(log_file).readlines()],
+        'motor_pos' : [float(x.split('\t')[ 6]) for x in open(log_file).readlines()],
+        'link_vel' :  [float(x.split('\t')[ 7]) /1000 for x in open(log_file).readlines()],
+        'motor_vel' : [float(x.split('\t')[ 8]) /1000 for x in open(log_file).readlines()],
+        'torque' :    [float(x.split('\t')[ 9]) for x in open(log_file).readlines()],
+        'aux':        [float(x.split('\t')[10]) for x in open(log_file).readlines()]
+    }
+
+    if remove_ripple:
+        ripple = get_ripple(data_dict['motor_pos'], yaml_=yaml_file)
+        fig, axs = plt.subplots(2)
+        axs[0].plot(data_dict['torque'], color='#1f77b4', label='PDO')
+        axs[0].plot(ripple             , color='#ff7f0e', label='ripple')
+        axs[0].legend()
+        axs[0].set_ylabel('torque (Nm)')
+        axs[0].set_xlabel('Timestamp (ms)')
+        axs[0].grid(b=True, which='major', axis='y', linestyle='-')
+        axs[0].grid(b=True, which='major', axis='x', linestyle=':')
+        axs[0].spines['top'].set_visible(False)
+        axs[0].spines['right'].set_visible(False)
+        axs[0].spines['left'].set_visible(False)
+
+        data_dict['torque'] = [t - r for t, r in zip(data_dict['torque'], ripple)]
+        axs[1].plot(data_dict['torque'], color='#2ca02c', label='diff')
+        axs[1].legend()
+        axs[1].set_ylabel('torque (Nm)')
+        axs[1].set_xlabel('Timestamp (ms)')
+        axs[1].grid(b=True, which='major', axis='y', linestyle='-')
+        axs[1].grid(b=True, which='major', axis='x', linestyle=':')
+        axs[1].spines['top'].set_visible(False)
+        axs[1].spines['right'].set_visible(False)
+        axs[1].spines['left'].set_visible(False)
+        if plot_all:
+            plt.show()
+        else:
+            if yaml_file == 'NULL':
+                list_of_files = glob.glob('/logs/*.yaml')
+                yaml_file = max(list_of_files, key=os.path.getctime)
+
+            # Save the graph
+            plt.tight_layout()
+            fig_name = log_file[:-4] + '-0.png'
+            print('Saving graph as: ' + fig_name)
+            plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+
+    if filter_type != 'NULL':
+        ids = [0] + [i
+                     for i in range(1, len(data_dict['loop_cnt']) - 1)
+                     if data_dict['loop_cnt'][i] != data_dict['loop_cnt'][i - 1]
+                    ] + [len(data_dict['loop_cnt'])-1]
+        ts   = [data_dict[     'time'][ids[i-1]:ids[i]] for i in range(1, len(ids))]
+
+        vels = [data_dict['motor_vel'][ids[i-1]:ids[i]] for i in range(1, len(ids))]
+        vels_f = [freq_domain.filtered(v, max_freq=filter_freq, samp_freq=samp_freq, method=filter_type) for v in vels]
+        data_dict['motor_vel'] = []
+        for v in vels_f:
+            data_dict['motor_vel'] += list(v)
+
+        accs = []
+        data_dict['motor_acc'] = []
+        for t, v in zip(ts, vels):
+            accs += [[0.0] + [(v[i] - v[i - 1]) / (t[i] - t[i - 1]) for i in range(1, len(t) - 1)] + [0.0]]
+        for a in accs:
+            data_dict['motor_acc'] += list(a)
+
+        aux = [data_dict['aux'][ids[i-1]:ids[i]] for i in range(1, len(ids))]
+        aux_f = [freq_domain.filtered(v, max_freq=filter_freq, samp_freq=samp_freq, method=filter_type) for v in aux]
+        data_dict['aux'] = []
+        for a in aux_f:
+            data_dict['aux'] += list(a)
+
+        tors = [data_dict['torque'][ids[i - 1] : ids[i]] for i in range(1, len(ids))]
+        tors_f = [freq_domain.filtered(v, max_freq=filter_freq, samp_freq=samp_freq, method=filter_type) for v in tors]
+        for t in tors_f:
+            data_dict['torque'] += list(t)
+
+    return data_dict
+
 
 def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     # load results
@@ -181,25 +238,26 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
                     'Li': 1.18, 'Av': 1.48, 'Le': 3.01, 'Or': 4.71, 'Po': 8.63, \
                     'li': 1.18, 'av': 1.48, 'le': 3.01, 'or': 4.71, 'po': 8.63, \
                     'lI': 1.18, 'aV': 1.48, 'lE': 3.01, 'oR': 4.71, 'pO': 8.63, }
+    # if motor_type in inertia_dict:
+    #     warm_start = True
+    #     init_inertia = inertia_dict[motor_type] * gear_ratio * gear_ratio / 100000
+    #     if 'init_dv' in yaml_dict:
+    #         init_dv = yaml_dict['init_dv']
+    #     else:
+    #         init_dv = 1.0
+    #     if 'init_dc' in yaml_dict:
+    #         init_dc = yaml_dict['init_dc']
+    #     else:
+    #         init_dc = 2.0
+    #     if 'init_sigma' in yaml_dict:
+    #         init_sigma = yaml_dict['init_sigma']
+    #     else:
+    #         init_sigma = 4.0
+    #     bounds = ([0.75 * init_inertia,  0., 0.,  0., 0., 0., 0.],
+    #               [1.25 * init_inertia, 10.,10., 10.,10.,10.,10.])
+    #     print('bounds:' + str(bounds))
+    # else:
     if motor_type in inertia_dict:
-        warm_start = True
-        init_inertia = inertia_dict[motor_type] * gear_ratio * gear_ratio / 100000
-        if 'init_dv' in yaml_dict:
-            init_dv = yaml_dict['init_dv']
-        else:
-            init_dv = 1.0
-        if 'init_dc' in yaml_dict:
-            init_dc = yaml_dict['init_dc']
-        else:
-            init_dc = 2.0
-        if 'init_sigma' in yaml_dict:
-            init_sigma = yaml_dict['init_sigma']
-        else:
-            init_sigma = 4.0
-        bounds = ([0.75 * init_inertia,  0., 0.,  0., 0., 0., 0.], 
-                  [1.25 * init_inertia, 10.,10., 10.,10.,10.,10.])
-        print('bounds:' + str(bounds))
-    else:
         print('Found no default values for motor type: ' + motor_type)
         warm_start = False
         init_dv = None
@@ -219,61 +277,29 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
         log_file = max(list_of_files, key=os.path.getctime)
 
     print('Using log: ' + log_file)
-    data_dict = dict_from_log(log_file)
+    #data_dict = dict_from_log(log_file)
+    data_dict = get_from_log(log_file,
+                             remove_ripple=True,
+                             filter_type='simple',
+                             samp_freq=trj_info.samp_freq,
+                             filter_freq=10.0)
     motor = MotorData.from_dict(motor_dict=data_dict,
                                 trj_info=trj_info,
                                 gear_ratio=gear_ratio,
                                 k_tau=k_tau)
 
-    ## remove torque ripple and offset
-    tor0 = motor.torque
-    if yaml_file[-12:] == 'results.yaml':
-        print('using data from given yaml: ' + yaml_file)
-        ripple = get_ripple(pos=motor.pos, yaml_dict=out_dict['results']['ripple'])
-    else:
-        ripple = get_ripple(motor.pos)
-
-    fig, axs = plt.subplots(2)
-    axs[0].plot(motor.torque, color='#1f77b4', label='PDO')
-    axs[0].plot(ripple      , color='#ff7f0e', label='ripple')
-    axs[0].legend()
-    axs[0].set_ylabel('torque (Nm)')
-    axs[0].set_xlabel('Timestamp (ms)')
-    axs[0].grid(b=True, which='major', axis='y', linestyle='-')
-    axs[0].grid(b=True, which='major', axis='x', linestyle=':')
-    axs[0].spines['top'].set_visible(False)
-    axs[0].spines['right'].set_visible(False)
-    axs[0].spines['left'].set_visible(False)
-
-    motor.torque = motor.torque - ripple
-    axs[1].plot(motor.torque, color='#2ca02c', label='diff')
-    axs[1].legend()
-    axs[1].set_ylabel('torque (Nm)')
-    axs[1].set_xlabel('Timestamp (ms)')
-    axs[1].grid(b=True, which='major', axis='y', linestyle='-')
-    axs[1].grid(b=True, which='major', axis='x', linestyle=':')
-    axs[1].spines['top'].set_visible(False)
-    axs[1].spines['right'].set_visible(False)
-    axs[1].spines['left'].set_visible(False)
-
-
-    # Save the graph
-    plt.tight_layout()
-    fig_name = log_file[:-4] + '-0.png'
-    print('Saving graph as: ' + fig_name)
-    plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
-
     ## Linear model
-    inertia = motor_terms.MotorInertia(init_inertia= init_inertia)
-    viscous_frict = motor_terms.AsymmetricViscousFriction(init_dv= init_dv, gamma= gamma)
-    coulomb_strib_frict = motor_terms.AsymmetricCoulombStribeckFriction(init_dc=init_dc, init_sigma=init_sigma, gamma=gamma)
+    inertia = motor_terms.MotorInertia(init_inertia = out_dict['results']['flash_params']['gearedMotorInertia'])
+    viscous_frict = motor_terms.AsymmetricViscousFriction(gamma=gamma)
+    coulomb_strib_frict = motor_terms.AsymmetricCoulombStribeckFriction(gamma=gamma)
     #tau_off = motor_terms.TauOffset()
 
-    regressor = LinearRegressor(scipy_lsq_linear_strategy)#huber_regr_strategy)
+    regressor = LinearRegressor(huber_regr_strategy)
     linear_regression = LinearRegression(regressor)
     simulation = Simulation()
 
-    models = [inertia, coulomb_strib_frict, viscous_frict]#, tau_off]
+    #models = [inertia, coulomb_strib_frict, viscous_frict, tau_off]
+    models = [coulomb_strib_frict, viscous_frict]
     for model in models:
         linear_regression.add_model(model)
 
@@ -282,14 +308,12 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     linear_regression.set_lhs(motor.tau_m)
     if warm_start:
         print('Using values: '+ str([init_inertia, init_dv, init_dc, init_sigma, gamma]) +' for motor type: ' + motor_type)
-    param_dict = linear_regression.solve(warm_start=warm_start, bounds=bounds)
+    param_dict = linear_regression.solve()#warm_start=warm_start, bounds=bounds)
 
     err = linear_regression.get_prediction_error(equalized=False)
     _, X = linear_regression.get_y_and_regr_matrix(equalized=False)
     params = np.array(list(linear_regression.get_param_dict().values()))
     Xp = X.dot(params)
-
-    linear_model = linear_regression.get_model_copy()
 
     print('param_dict:')
     for k, v in param_dict.items():
@@ -300,12 +324,14 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     NRMSE = RMSE / np.std(Xp + err)
     print('NRMSE: {NRMSE:.4f}\nRMSE: {RMSE:.4f}'.format(NRMSE=NRMSE, RMSE=RMSE))
 
+    err = [i / (gear_ratio * k_tau) for i in (err)]
+    Xp  = [i / (gear_ratio * k_tau) for i in (Xp)]
     fig, axs = plt.subplots()
     axs.plot(err + Xp, color='#ff7f0e', label='Reference')
     axs.plot(      Xp, color='#1f77b4', label='Linear Model')
     axs.legend()
 
-    axs.set_ylabel('torque (Nm)')
+    axs.set_ylabel('Current (A)')
     axs.set_xlabel('Timestamp (ms)')
     axs.axvline(0, color='black', lw=1.2)
     axs.axhline(0, color='black', lw=1.2)
@@ -366,96 +392,11 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
         print('Saving graph as: ' + fig_name)
         plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
-    # ## Nonlinear model
-    # non_linear_regression = NonLinearRegression()
-
-    # non_linear_regression.set_pos_vel_acc(motor.pos, motor.vel, motor.acc)
-    # non_linear_regression.set_samp_freq(trj_info.samp_freq)
-    # non_linear_regression.set_lhs(motor.tau_m)
-
-    # linear_model1 = linear_regression.get_model_copy()
-    # non_linear_regression.add_model(linear_model1)
-
-    # torque_ripple = motor_terms.TorqueRippleSinPhase(num_of_sin=3,
-    #                                                  init_ampl=5.0,
-    #                                                  init_freq=10.0)
-    # #torque_ripple = motor_terms.TorqueRippleVelDependent(num_of_sin=3, init_ampl=5.0)
-    # non_linear_regression.add_model(torque_ripple)
-    # non_lin_param_dict = non_linear_regression.solve()
-    # print(non_lin_param_dict)
-
-    # err = non_linear_regression.get_prediction_error()
-    # y = non_linear_regression.get_y()
-    # predictions = non_linear_regression.get_prediction_array()
-
-    # fig, axs = plt.subplots()
-    # axs.plot(predictions, color='#ff7f0e', label='Reference')
-    # axs.plot(          y, color='#1f77b4', label='Nonlinear Model')
-    # axs.legend()
-
-    # axs.set_ylabel('torque (Nm)')
-    # axs.set_xlabel('Timestamp (ms)')
-    # axs.axvline(0, color='black', lw=1.2)
-    # axs.axhline(0, color='black', lw=1.2)
-
-    # axs.set_xlim(0, len(Xp))
-    # plt_pad = (max(Xp) - min(Xp)) * 0.02
-    # axs.set_ylim(min(Xp) - plt_pad, max(Xp) + plt_pad)
-    # axs.grid(b=True, which='major', axis='y', linestyle='-')
-    # axs.grid(b=True, which='minor', axis='y', linestyle=':')
-    # axs.grid(b=True, which='major', axis='x', linestyle=':')
-    # axs.xaxis.set_major_locator(plt.MultipleLocator(len(Xp) / 5))
-    # axs.xaxis.set_minor_locator(plt.MultipleLocator(len(Xp) / 15))
-    # axs.spines['top'].set_visible(False)
-    # axs.spines['right'].set_visible(False)
-    # axs.spines['left'].set_visible(False)
-
-    # plt.tight_layout()
-    # if plot_all:
-    #     plt.show()
-
-    #     fig, axs = plt.subplots()
-    #     axs.title('Torque Error - Nonlinear Model')
-    #     axs.set_ylabel('Error (Nm)')
-    #     axs.set_xlabel('Timestamp (ms)')
-
-    #     axs.plot(err, label='y -Xp')
-    #     axs.axvline(0, color='black', lw=1.2)
-    #     axs.axhline(0, color='black', lw=1.2)
-
-    #     axs.set_xlim(0, len(err))
-    #     plt_pad = (max(err) - min(err)) * 0.02
-    #     axs.set_ylim(min(err) - plt_pad, max(err) + plt_pad)
-    #     axs.grid(b=True, which='major', axis='y', linestyle='-')
-    #     axs.grid(b=True, which='minor', axis='y', linestyle=':')
-    #     axs.grid(b=True, which='major', axis='x', linestyle=':')
-    #     axs.xaxis.set_major_locator(plt.MultipleLocator(len(err) / 5))
-    #     axs.xaxis.set_minor_locator(plt.MultipleLocator(len(err) / 15))
-    #     axs.spines['top'].set_visible(False)
-    #     axs.spines['right'].set_visible(False)
-    #     axs.spines['left'].set_visible(False)
-    #     plt.show()
-
-    #     fig, axs = plt.subplots()
-    #     axs.title('Error Distribution - Nonlinear Model')
-    #     axs.set_xlabel('Error (Nm)')
-    #     axs.hist(err, 100, label='y -Xp')
-
-    #     plt_pad = (max(err) - min(err)) * 0.02
-    #     axs.set_xlim(min(err) - plt_pad, max(err) + plt_pad)
-    #     axs.grid(b=True, which='major', axis='y', linestyle=':')
-    #     axs.spines['top'].set_visible(False)
-    #     axs.spines['right'].set_visible(False)
-    #     axs.spines['left'].set_visible(False)
-    #     plt.show()
-    # else:
-    #     # Save the graph
-    #     fig_name = log_file[:-4] + '-2.png'
-    #     print('Saving graph as: ' + fig_name)
-    #     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
     ## Run simulation
     print('Running simulation')
+    linear_regression.add_model(inertia)  # add inertia for simulation
+    linear_model = linear_regression.get_model_copy()
     simulation.set_init_conditions(motor)
     simulation.set_time_interval(trj_info)
 
@@ -481,7 +422,7 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
 
     axs.set_xlim(0, len(motor.pos[:-2]))
     plt_pad = (max(motor.pos) - min(motor.pos)) * 0.05
-    axs.set_ylim(min(motor.pos) - plt_pad, max(motor.pos) + plt_pad)
+    #axs.set_ylim(min(motor.pos) - plt_pad, max(motor.pos) + plt_pad)
     axs.grid(b=True, which='major', axis='y', linestyle='-')
     axs.grid(b=True, which='minor', axis='y', linestyle=':')
     axs.grid(b=True, which='major', axis='x', linestyle=':')
@@ -505,8 +446,9 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
         yaml_file = log_file[:-16] + 'results.yaml'
         out_dict['results']={}
 
-    out_dict['results']['friction'] ={}
-    out_dict['results']['friction']['motor_inertia'] = float(param_dict['motor_inertia'])
+    out_dict['results']['friction'] = {}
+    # FIXME: put back : float(param_dict['motor_inertia'])
+    out_dict['results']['friction']['motor_inertia'] = out_dict['results']['flash_params']['gearedMotorInertia']
 
     out_dict['results']['friction']['viscous_friction'] = {}
     if 'dv' in param_dict:
