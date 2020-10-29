@@ -207,7 +207,7 @@ def process(yaml_file='NULL', plot_all=False):
 
 
     sin1 = [
-        fit_sine.sinfunc(t=t,
+        fit_sine.sine_1(t=t,
                          A1=s1["a1"],
                          w1=s1["w1"],
                          p1=s1["p1"],
@@ -215,7 +215,7 @@ def process(yaml_file='NULL', plot_all=False):
         for t in ts1
     ]
     sin2 = [
-        fit_sine.sin2func(t=t,
+        fit_sine.sine_2(t=t,
                           A1=s2["a1"],
                           A2=s2["a2"],
                           w1=s2["w1"],
@@ -226,7 +226,7 @@ def process(yaml_file='NULL', plot_all=False):
         for t in ts1
     ]
     sin3 = [
-        fit_sine.sin3func(t=t,
+        fit_sine.sine_3(t=t,
                           A1=s3["a1"],
                           A2=s3["a2"],
                           A3=s3["a3"],

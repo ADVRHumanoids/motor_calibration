@@ -103,13 +103,13 @@ def get_ripple(pos, yaml_dict='NULL'):
     t=[]
     if num_of_sinusoids == 1:
         for p in pos:
-            t.append(fit_sine.sinfunc(p, A1, w1, p1, c))
+            t.append(fit_sine.sine_1(p, A1, w1, p1, c))
     elif num_of_sinusoids == 2:
         for p in pos:
-            t.append(fit_sine.sin2func(p, A1, A2, w1, w2, p1, p2, c))
+            t.append(fit_sine.sine_2(p, A1, A2, w1, w2, p1, p2, c))
     elif num_of_sinusoids == 3:
         for p in pos:
-            t.append(fit_sine.sin3func(p, A1, A2, A3, w1, w2, w3, p1, p2, p3, c))
+            t.append(fit_sine.sine_3(p, A1, A2, A3, w1, w2, w3, p1, p2, p3, c))
     else:
         for k, v in yaml_dict.items():
             print('\t' + str(k) + '\t' + str(v))
@@ -220,7 +220,8 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
 
     print('Using log: ' + log_file)
     data_dict = dict_from_log(log_file)
-    motor = MotorData.from_dict(motor_dict=data_dict,
+    motor = MotorData.from_dict(filter_signal=True,
+                                motor_dict=data_dict,
                                 trj_info=trj_info,
                                 gear_ratio=gear_ratio,
                                 k_tau=k_tau)
