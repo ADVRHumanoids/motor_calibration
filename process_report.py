@@ -430,7 +430,7 @@ def process(yaml_file='NULL'):
         pdf.ln(th * 0.66)
         pdf.cell(effective_page_width /12, th,'', border=0, align="L")
         pdf.cell(effective_page_width /12, th,'ang. vel.', border=0, align="L")
-        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(out_dict['calib_friction']['freq0']), border=0, align="R")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(out_dict['calib_friction']['freq0']*2*np.pi*float(1+2*i)), border=0, align="R")
         pdf.ln(th * 0.66)
         pdf.cell(effective_page_width / 12,th,'',border=0,align="L")
         pdf.cell(effective_page_width / 12, th, 'phase:', border=0, align="L")
