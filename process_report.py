@@ -4,6 +4,7 @@ import os
 import sys
 import glob
 import yaml
+import numpy as np
 from fpdf import FPDF
 
 
@@ -183,7 +184,7 @@ def process(yaml_file='NULL'):
         pdf.cell(effective_page_width * 0.32, th, 'None', border=0)
     else:
         pdf.cell(effective_page_width * 0.32, th, str(int(motor_id[-1], 16)), border=0)
-    
+
     pdf.ln(th + 4)
     ## Ram parameters
     pdf.set_font("Arial", 'B', size=14)
@@ -198,11 +199,11 @@ def process(yaml_file='NULL'):
             pdf.cell(effective_page_width * 0.17, th, yaml_dict['ram_params']['m3_fw_ver'], border=0)
         else:
             pdf.cell(effective_page_width * 0.17, th, 'Unknown', border=0)
-        
+
         pdf.cell(effective_page_width*0.32, th, "torqueCalibArrayDim", border=0)
         pdf.cell(effective_page_width*0.17, th, str(ram_dict["torqueCalibArrayDim"]), border=0)
         pdf.ln(th)
-        
+
         pdf.cell(effective_page_width * 0.32, th, "C28 Firmware Version", border=0)
         if 'm3_fw_ver' in yaml_dict['ram_params']:
             pdf.cell(effective_page_width * 0.17, th, yaml_dict['ram_params']['m3_fw_ver'], border=0)
@@ -211,7 +212,7 @@ def process(yaml_file='NULL'):
         pdf.cell(effective_page_width*0.32, th, "torqueDerArrayDim", border=0)
         pdf.cell(effective_page_width*0.17, th, str(ram_dict["torqueDerArrayDim"]), border=0)
         pdf.ln(th)
-        
+
         pdf.cell(effective_page_width*0.32, th, "posRefFiltAcoeff", border=0)
         pdf.cell(effective_page_width*0.17, th, str(ram_dict["posRefFiltAcoeff"]), border=0)
         pdf.cell(effective_page_width*0.32, th, "motorVelArrayDim", border=0)
@@ -362,7 +363,7 @@ def process(yaml_file='NULL'):
             pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['w1']), border=0, align="R")
             pdf.ln(th)
             pdf.cell(effective_page_width / 6, th, 'phase:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['a1']), border=0, align="R")
+            pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p1']), border=0, align="R")
 
         elif num_of_sinusoids > 1:
             pdf.cell(effective_page_width /12, th,'Sin_1', border=0, align="L")
@@ -383,11 +384,11 @@ def process(yaml_file='NULL'):
             pdf.ln(th * 0.75)
             pdf.cell(effective_page_width /12,th,'',border=0,align="L")
             pdf.cell(effective_page_width /12, th, 'phase:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['a1']), border=0, align="R")
+            pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p1']), border=0, align="R")
             pdf.cell(effective_page_width /12, th, '', border=0, align="L")
             pdf.cell(effective_page_width /12, th,'',border=0,align="L")
             pdf.cell(effective_page_width /12, th, 'phase:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['a2']), border=0, align="R")
+            pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p2']), border=0, align="R")
 
         if num_of_sinusoids > 2:
             pdf.ln(th*1.1)
@@ -414,9 +415,9 @@ def process(yaml_file='NULL'):
     pdf.cell(200, 10, txt='Inertia and Friction Identification', ln=1)
     pdf.set_font("Arial", '', size=13)
 
-    if 'A' in out_dict['calib_friction']:
-        A_multi = out_dict['calib_friction']['A']
-        P_multi = out_dict['calib_friction']['phi']
+    if 'A' in out_dict['calib_inertia']:
+        A_multi = out_dict['calib_inertia']['A']
+        P_multi = out_dict['calib_inertia']['phi']
         txt_description = 'In position control, a periodic reference trajectory, composed of multiple sinusoids was sent to the motor and all its pdo data recorded. Using linear regression a model is interpolated to match the recorded data. For this test {len_a} sinusoids where used. They had the following characterisitcs:'
         pdf.multi_cell(w=effective_page_width,
                        h=7,
@@ -430,7 +431,7 @@ def process(yaml_file='NULL'):
         pdf.ln(th * 0.66)
         pdf.cell(effective_page_width /12, th,'', border=0, align="L")
         pdf.cell(effective_page_width /12, th,'ang. vel.', border=0, align="L")
-        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(out_dict['calib_friction']['freq0']*2*np.pi*float(1+2*i)), border=0, align="R")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(out_dict['calib_inertia']['freq0']*2*np.pi*float(1+2*i)), border=0, align="R")
         pdf.ln(th * 0.66)
         pdf.cell(effective_page_width / 12,th,'',border=0,align="L")
         pdf.cell(effective_page_width / 12, th, 'phase:', border=0, align="L")
