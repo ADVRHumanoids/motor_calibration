@@ -32,7 +32,7 @@ def move_log(new_name='NULL'):
     if new_name == 'NULL':
         list_of_files = glob.glob('/logs/*-results.yaml')
         last_log = max(list_of_files, key=os.path.getctime)
-        new_name = last_log[:-13] + '-friction-calib.log'
+        new_name = last_log[:-13] + '-inertia-calib.log'
     cmd = 'cp ' + tmp_file + ' ' + new_name
     if os.system(cmd):
         sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error while copying logs' + plot_utils.bcolors.ENDC)
@@ -195,7 +195,7 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
     # read parameters from yaml file
     with open(yaml_file, 'r') as stream:
         out_dict = yaml.safe_load(stream)
-        yaml_dict = out_dict['calib_friction']
+        yaml_dict = out_dict['calib_inertia']
 
     # read parameters from yaml file
     if 'location' in out_dict['log']:
@@ -273,7 +273,7 @@ def process(yaml_file='NULL', log_file='NULL', plot_all=False):
 
     # load data from log
     if log_file=='NULL':
-        list_of_files = glob.glob('/logs/*-friction-calib.log')
+        list_of_files = glob.glob('/logs/*-inertia-calib.log')
         log_file = max(list_of_files, key=os.path.getctime)
 
     print('Using log: ' + log_file)
