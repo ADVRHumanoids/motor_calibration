@@ -27,18 +27,6 @@ from friction_calibration_tool.utils_module.simulation import Simulation
 from friction_calibration_tool.utils_module.trajectory import TrjInfo
 
 
-def move_log(new_name='NULL'):
-    '''Moves lastest CentAcESC_*_log.txt log file to new_name location, default is taken'''
-    list_of_files = glob.glob('/tmp/CentAcESC_*_log.txt')
-    tmp_file = max(list_of_files, key=os.path.getctime)
-    if new_name == 'NULL':
-        list_of_files = glob.glob('/logs/*-results.yaml')
-        last_log = max(list_of_files, key=os.path.getctime)
-        new_name = last_log[:-13] + '-inertia-calib.log'
-    cmd = 'cp ' + tmp_file + ' ' + new_name
-    if os.system(cmd):
-        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error while copying logs' + plot_utils.bcolors.ENDC)
-
 def get_ripple(pos, yaml_='NULL'):
     if isinstance(yaml_, dict):
         pass

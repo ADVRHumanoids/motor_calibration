@@ -15,6 +15,7 @@ from utils import process_phase
 from utils import process_ripple
 from utils import process_friction
 from utils import plot_utils
+from utils import move_utils
 
 ## Parameters:
 # path to test-pdo
@@ -42,8 +43,9 @@ if os.system(cmd0 + ' ' + config_file):
 print(plot_utils.bcolors.OKBLUE + "[i] Ended test-pdo successfully" + plot_utils.bcolors.ENDC)
 
 #get updated yaml file
-list_of_files = glob.glob('/logs/*.yaml')
+list_of_files = glob.glob('/logs/*-results.yaml')
 config_file = max(list_of_files, key=os.path.getctime)
+config_file = move_utils.move_yaml(config_file)
 
 ## test phase angles
 print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
@@ -81,11 +83,10 @@ print(plot_utils.bcolors.OKBLUE + "[i] Ended friction-calib successfully" + plot
 print(plot_utils.bcolors.OKBLUE + "[i] Starting inertia-calib" + plot_utils.bcolors.ENDC)
 if os.system(cmd5 + ' ' + config_file):
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during inertia-calib' + plot_utils.bcolors.ENDC)
+move_utils.move_log(yaml_file=config_file)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended inertia-calib successfully" + plot_utils.bcolors.ENDC)
 
 # process extracted data
 print(plot_utils.bcolors.OKBLUE + "[i] Processing friction and inertia data" + plot_utils.bcolors.ENDC)
-process_friction.move_log()
 process_friction.process(yaml_file=config_file, plot_all=False)
-
 print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)

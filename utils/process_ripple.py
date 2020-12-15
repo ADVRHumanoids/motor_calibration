@@ -10,15 +10,16 @@ from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
 #import costum
-import plot_utils
-import fit_sine
+from utils import plot_utils
+from utils import fit_sine
 
 def process(yaml_file='NULL', plot_all=False):
     # load results
+    print('[i] Using yaml_file: ' + yaml_file)
     if yaml_file == 'NULL':
         list_of_files = glob.glob('/logs/*.yaml')
         yaml_file = max(list_of_files, key=os.path.getctime)
-    
+
     plt.rcParams['savefig.dpi'] = 300
     repeat = 3
     steps_1 = 13
@@ -37,24 +38,25 @@ def process(yaml_file='NULL', plot_all=False):
     else:
         motor_name = 'Torque offset & ripple'
 
-    # read data from latest file --------------------------------------------------------------
-    list_of_files = glob.glob('/logs/*-ripple_calib.log')
-    file = max(list_of_files, key=os.path.getctime)
-    print('[i] Reading file: ' + file)
+    # read data from latest log_file --------------------------------------------------------------
+    # list_of_files = glob.glob('/logs/*-ripple_calib.log')
+    # log_file = max(list_of_files, key=os.path.getctime)
+    log_file = yaml_file[:-len('-results.yaml')] + '-ripple_calib.log'
+    print('[i] Reading log_file: ' + log_file)
 
     print('[i] Processing data')
     # '%u64\t%u\t%u\t%u\t%u\t%f\t%f\t%d\t%f\t%f\t%f'
-    ts = [np.uint64(x.split('\t')[0]) for x in open(file).readlines()]
-    is_moving  = [np.uint32(x.split('\t')[ 1]) for x in open(file).readlines()]
-    trj_cnt    = [np.uint32(x.split('\t')[ 2]) for x in open(file).readlines()]
-    curr_ref   = [    float(x.split('\t')[ 3]) for x in open(file).readlines()]
-    torque     = [    float(x.split('\t')[ 4]) for x in open(file).readlines()]
-    pos_target = [    float(x.split('\t')[ 5]) for x in open(file).readlines()]
-    pos_motor  = [    float(x.split('\t')[ 6]) for x in open(file).readlines()]
-    pos_link   = [    float(x.split('\t')[ 7]) for x in open(file).readlines()]
-    vel_motor  = [ np.int16(x.split('\t')[ 8]) for x in open(file).readlines()]
-    vel_link   = [ np.int16(x.split('\t')[ 9]) for x in open(file).readlines()]
-    aux_var    = [    float(x.split('\t')[10]) for x in open(file).readlines()]
+    ts = [np.uint64(x.split('\t')[0]) for x in open(log_file).readlines()]
+    is_moving  = [np.uint32(x.split('\t')[ 1]) for x in open(log_file).readlines()]
+    trj_cnt    = [np.uint32(x.split('\t')[ 2]) for x in open(log_file).readlines()]
+    curr_ref   = [    float(x.split('\t')[ 3]) for x in open(log_file).readlines()]
+    torque     = [    float(x.split('\t')[ 4]) for x in open(log_file).readlines()]
+    pos_target = [    float(x.split('\t')[ 5]) for x in open(log_file).readlines()]
+    pos_motor  = [    float(x.split('\t')[ 6]) for x in open(log_file).readlines()]
+    pos_link   = [    float(x.split('\t')[ 7]) for x in open(log_file).readlines()]
+    vel_motor  = [ np.int16(x.split('\t')[ 8]) for x in open(log_file).readlines()]
+    vel_link   = [ np.int16(x.split('\t')[ 9]) for x in open(log_file).readlines()]
+    aux_var    = [    float(x.split('\t')[10]) for x in open(log_file).readlines()]
 
     # find where we start testing id instead of iq
     ii = 0
@@ -285,13 +287,20 @@ def process(yaml_file='NULL', plot_all=False):
         plt.show()
 
     # Save the graph
-    fig_name = file[:-4] + '.png'
+    head, tail = os.path.split(log_file)
+    new_head = head + '/images/'
+    if os.path.isdir(new_head) is False:
+        try:
+            os.makedirs(new_head)
+        except OSError:
+            print("Creation of the directory %s failed" % new_head)
+    fig_name = new_head + tail[:-4] + '.png'
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
     # savign results
     if yaml_file[-12:] != 'results.yaml':
-        yaml_file = file[:-16] + 'results.yaml'
+        yaml_file = log_file[:-16] + 'results.yaml'
         out_dict['results']={}
 
     num_of_sinusoids = int(np.argsort(RMSE)[0]) + 1
