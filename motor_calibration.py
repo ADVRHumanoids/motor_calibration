@@ -11,10 +11,10 @@ plt_use("Agg")
 from matplotlib import pyplot as plt
 
 #import costum files
-import process_phase
-import process_ripple
-import process_friction
-import plot_utils
+from utils import process_phase
+from utils import process_ripple
+from utils import process_friction
+from utils import plot_utils
 
 ## Parameters:
 # path to test-pdo

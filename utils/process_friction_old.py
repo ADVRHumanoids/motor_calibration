@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import os
 import sys
 import glob
@@ -9,8 +11,8 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 #import costum
-import fit_sine
-import plot_utils
+from utils import fit_sine
+from utils import plot_utils
 from friction_calibration_tool.utils_module import freq_domain
 from friction_calibration_tool.utils_module import motor_eqn_models as motor_terms
 from friction_calibration_tool.utils_module.logimport import dict_from_log

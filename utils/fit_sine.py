@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
-import numpy, scipy.optimize
-
+import numpy
+import scipy.optimize
 
 def sinfunc(t, A1, p1, c):
     return sine_1(t=t, A1=A1, w1=1., p1=p1, c=c)
