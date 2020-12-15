@@ -29,16 +29,20 @@ from friction_calibration_tool.regression.concrete import ( NonLinearRegression,
 
 #calculate RMSE
 def RMSE(actual, pred):
-    return sqrt(mean_squared_error(actual, pred))
+    return sqrt(mean_squared_error(actual, pred)) / np.std(pred)
 
 #process friction and inertia
 def process(yaml_file,
+            verbose=False,
             min_gamma=1000.,
             max_gamma=np.inf,
             min_const_vel=-1.,
             max_const_vel=1.,
             const_vel_lowpass_cutoff=None,
+            run_simulation=False,
+            save_cvs=False,
             plot_all=False):
+
     # read parameters from yaml file
     print('[i] Using yaml_file: ' + yaml_file)
     with open(yaml_file) as f:
@@ -107,12 +111,14 @@ def process(yaml_file,
     non_linear_regression.set_lhs(cons_vel_trj_lhs)
     non_linear_regression.add_model(non_lin_friction_model)
     non_lin_param_dict = non_linear_regression.solve()
-    pprint(non_lin_param_dict)
+    if verbose:
+        pprint(non_lin_param_dict)
 
     friction_model = non_linear_regression.get_model_copy()
     predicted_friction = [friction_model.predict(None, vel, None, None) for vel in motor_df['motor_vel']]
     actual_friction = cons_vel_trj_lhs
     friction_rmse = RMSE(actual_friction, predicted_friction)
+    friction_nrmse = friction_rmse / np.std(predicted_friction)
 
     multisine_trj_zip = list(zip(multisine_motor.pos, multisine_motor.vel, multisine_motor.acc))
     no_offset_multisine_trj_tau_l = multisine_motor.torque - tau_l_offset
@@ -128,19 +134,25 @@ def process(yaml_file,
     linear_regression.set_samp_freq(multisine_motor.samp_freq)
     linear_regression.set_lhs(multisine_trj_lhs)
     param_dict = linear_regression.solve()
-    pprint(param_dict)
+    if verbose:
+        pprint(param_dict)
 
     inertia_model = linear_regression.get_model_copy()
 
     predicted_inertia_torque = [inertia_model.predict(pos, vel, acc, None) for pos, vel, acc in multisine_trj_zip]
     actual_inertia_torque = multisine_trj_lhs
     inertia_rmse = RMSE(actual_inertia_torque, predicted_inertia_torque)
+    inertia_nrmse = inertia_rmse / np.std(predicted_inertia_torque)
 
     motor_model = CompositeModel()
     motor_model.push(friction_model)
     motor_model.push(inertia)
-    print('Motor Model:', f'gamma_c: {non_lin_param_dict["gamma_c"]}', f'gamma_v: {non_lin_param_dict["gamma_v"]}',
-          f'{motor_model.get_param_dict()}', sep='\n')
+    if verbose:
+        print('Motor Model:',
+              f'gamma_c: {non_lin_param_dict["gamma_c"]}',
+              f'gamma_v: {non_lin_param_dict["gamma_v"]}',
+              f'{motor_model.get_param_dict()}',
+              sep='\n')
 
     title =  code_string + '_gear_ratio_{}_k_tau_{}_cutoff_{}'.format(int(gear_ratio), k_tau[0], const_vel_lowpass_cutoff)
 
@@ -160,13 +172,48 @@ def process(yaml_file,
     results.update(linear_regression.get_param_dict())
     results.update({'actual_motor_inertia': motor_yaml['results']['flash_params']['gearedMotorInertia']})
     results.update({'friction_RMSE': friction_rmse, 'inertia_RMSE': inertia_rmse})
+    results.update({'friction_NRMSE': friction_nrmse, 'inertia_NRMSE': inertia_nrmse})
 
+    # save result to yaml
+    motor_yaml['results']['friction'] = {}
+
+    motor_yaml['results']['friction']['params'] = {}
+    motor_yaml['results']['friction']['params']['min_const_vel'] = float(results['min_const_vel'])
+    motor_yaml['results']['friction']['params']['max_const_vel'] = float(results['max_const_vel'])
+    motor_yaml['results']['friction']['params']['min_gamma'] = float(results['min_gamma'])
+    if results['max_gamma']=='inf':
+        motor_yaml['results']['friction']['params']['max_gamma'] = str(results['max_gamma'])
+    else:
+        motor_yaml['results']['friction']['params']['max_gamma'] = float(results['max_gamma'])
+
+    motor_yaml['results']['friction']['viscous_friction'] = {}
+    motor_yaml['results']['friction']['viscous_friction']['gamma'] = float(results['gamma_v'])
+    motor_yaml['results']['friction']['viscous_friction']['dv_plus'] = float(results['dv_plus'])
+    motor_yaml['results']['friction']['viscous_friction']['dv_minus'] = float(results['dv_minus'])
+
+    motor_yaml['results']['friction']['coulomb_friction'] = {}
+    motor_yaml['results']['friction']['coulomb_friction']['gamma'] = float(results['gamma_c'])
+    motor_yaml['results']['friction']['coulomb_friction']['dc_plus'] = float(results['dc_plus'])
+    motor_yaml['results']['friction']['coulomb_friction']['dc_minus'] = float(results['dc_minus'])
+
+    motor_yaml['results']['friction']['motor_inertia'] = float(results['motor_inertia'])
+
+    motor_yaml['results']['friction']['statistics'] = {}
+    motor_yaml['results']['friction']['statistics']['inertia_model_RMSE'] = float(results['inertia_RMSE'])
+    motor_yaml['results']['friction']['statistics']['inertia_model_NRMSE'] = float(results['inertia_NRMSE'])
+    motor_yaml['results']['friction']['statistics']['friction_model_RMSE'] = float(results['friction_RMSE'])
+    motor_yaml['results']['friction']['statistics']['friction_model_NRMSE'] = float(results['friction_NRMSE'])
+
+    print('Saving results in: ' + yaml_file)
+    with open(yaml_file, 'w', encoding='utf8') as outfile:
+        yaml.dump(motor_yaml, outfile, default_flow_style=False, allow_unicode=True)
+
+
+    # save resultsto cvs
     df = pd.DataFrame(results, index=(code_string[:-6],))
-
-    with open(os.path.join(save_path, 'params.csv') , 'w') as file:
-        df.to_csv(file, float_format="%.6f")
-
-
+    if save_cvs:
+        with open(os.path.join(save_path, 'params.csv') , 'w') as file:
+            df.to_csv(file, float_format="%.6f")
 
     figsize = (18,12)
     extension = ".png"
@@ -178,13 +225,15 @@ def process(yaml_file,
     plt.plot(motor_df['motor_vel'], motor_df['lhs'], 'b*', label='tau_m - tau_l')
     vel_range = np.arange(min(const_vel_trj.vel), max(const_vel_trj.vel), 1 / const_vel_trj.samp_freq)
     modeled_friction = [friction_model.predict(None, vel, None, None) for vel in vel_range]
-    plt.plot(vel_range, modeled_friction, 'r', label='modeled_friction:\n - gamma_c: {:.3f}\n - gamma_v: {:.3f}\n - dc_minus: {:.3f}\n - dc_plus {:.3f}\n - dv_minus: {:.3f}\n - dv_plus {:.3f}'.format(
-        non_lin_param_dict["gamma_c"], non_lin_param_dict["gamma_v"], params["dc_minus"], params["dc_plus"], params["dv_minus"], params["dv_plus"]))
+    plt.plot(vel_range, modeled_friction, 'r', label='modeled_friction' )
+    # plt.plot(vel_range, modeled_friction, 'r', label='modeled_friction:\n - gamma_c: {:.3f}\n - gamma_v: {:.3f}\n - dc_minus: {:.3f}\n - dc_plus {:.3f}\n - dv_minus: {:.3f}\n - dv_plus {:.3f}'.format(
+    #   non_lin_param_dict["gamma_c"], non_lin_param_dict["gamma_v"], params["dc_minus"], params["dc_plus"], params["dv_minus"], params["dv_plus"]))
     plt.xlabel('w [rad/s]'),  plt.ylabel('Torque [Nm]')
     plt.title(title)
     plt.legend()
-    fname = f"{code_string}-torque_vs_w{extension}"
-    f.savefig(os.path.join(save_path, fname), bbox_inches='tight')
+    fname = f"{code_string}-friction_calib-torque_vs_w{extension}"
+    f.savefig(fname=os.path.join(save_path, fname), format=extension[1:], bbox_inches='tight')
+    print('Saved graph as: ' + str(os.path.join(save_path, fname)))
 
     f = plt.figure(figsize=figsize, dpi=dpi)
     plt.plot(motor_df['time'], motor_df['lhs'], 'b*', label='actual: tau_m - tau_l')
@@ -192,8 +241,9 @@ def process(yaml_file,
     plt.xlabel('time [s]'), plt.ylabel('Torque [Nm]')
     plt.title(title)
     plt.legend()
-    fname = f"{code_string}-torque_vs_time{extension}"
-    f.savefig(os.path.join(save_path, fname), bbox_inches='tight')
+    fname = f"{code_string}-friction_calib-torque_vs_time{extension}"
+    f.savefig(fname=os.path.join(save_path, fname), format=extension[1:], bbox_inches='tight')
+    print('Saved graph as: ' + str(os.path.join(save_path, fname)))
 
     error = np.array(actual_friction) - np.array(predicted_friction) #motor_df.df['lhs'].to_numpy() - np.array([friction_model.predict(None, vel, None, None) for vel in motor_df['motor_vel']])
 
@@ -202,29 +252,35 @@ def process(yaml_file,
     plt.xlabel('Torque [Nm]')
     plt.title(title)
     plt.legend()
-    fname = f"{code_string}-error_hist{extension}"
-    f.savefig(os.path.join(save_path, fname), bbox_inches='tight')
+    fname = f"{code_string}-friction_calib-error_hist{extension}"
+    f.savefig(fname=os.path.join(save_path, fname), format=extension[1:], bbox_inches='tight')
+    print('Saved graph as: ' + str(os.path.join(save_path, fname)))
 
     f = plt.figure(figsize=figsize, dpi=dpi)
     plt.plot(motor_df['motor_vel'], error, '*', label='error [Nm]')
     plt.xlabel('w [rad/s]'), plt.ylabel('Torque [Nm]')
     plt.title(title)
     plt.legend()
-    fname = f"{code_string}-error_vs_w{extension}"
-    f.savefig(os.path.join(save_path, fname), bbox_inches='tight')
+    fname = f"{code_string}-friction_calib-error_vs_w{extension}"
+    f.savefig(fname=os.path.join(save_path, fname), format=extension[1:], bbox_inches='tight')
+    print('Saved graph as: ' + str(os.path.join(save_path, fname)))
 
-    # simulation = Simulation()
-    # simulation.set_init_conditions(multisine_motor)
-    # simulation.set_time_interval(multisine_trj)
-    # simulation.set_model(motor_model)
-    # simulation.set_motor_torque(multisine_motor)
-    # pos, vel = simulation.solve_ODE()
-    #
-    # plt.figure()
-    # plt.plot(pos, label='model (simulation)')
-    # plt.plot(multisine_motor.pos[:-2], label='original')
-    # plt.xlabel('time [ms]'), plt.ylabel('Theta [rad]')
-    # plt.legend()
+    if run_simulation:
+        simulation = Simulation()
+        simulation.set_init_conditions(multisine_motor)
+        simulation.set_time_interval(multisine_trj)
+        simulation.set_model(motor_model)
+        simulation.set_motor_torque(multisine_motor)
+        pos, vel = simulation.solve_ODE()
+
+        plt.figure()
+        plt.plot(pos, label='model (simulation)')
+        plt.plot(multisine_motor.pos[:-2], label='original')
+        plt.xlabel('time [ms]'), plt.ylabel('Theta [rad]')
+        plt.legend()
+        fname = f"{code_string}-friction_calib-simulation{extension}"
+        f.savefig(fname=os.path.join(save_path, fname), format=extension[1:], bbox_inches='tight')
+        print('Saved graph as: ' + str(os.path.join(save_path, fname)))
 
     if plot_all:
         plt.show()
