@@ -53,11 +53,11 @@ def process(yaml_file='NULL'):
         yaml_dict = out_dict['results']
 
     if 'location' in out_dict['log']:
-        len_loc = len(out_dict['loc']['location'])
+        len_loc = len(out_dict['log']['location'])
     else:
         len_loc = len('/logs/')
-    if 'name' in out_dict['calib_ripple']:
-        motor_name = out_dict['calib_ripple']['name']
+    if 'name' in out_dict['log']:
+        motor_name = out_dict['log']['name']
 
     title_txt = "Calibration Results"
     #pdf.set_title_txt = title_txt
