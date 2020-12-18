@@ -116,7 +116,7 @@ def process(yaml_file, plot_all=False):
         axs[0].plot(ns, motor_pos, label='Motor Vel', color='b', marker='.')
         axs[0].plot(ns, link_pos, label='Motor Vel', color='g', marker='.')
         axs[0].set_ylabel('Position (rad)')
-        axs[0].set_xlabel('timestamp (ns)')
+        axs[0].set_xlabel('Timestamp (ns)')
         #axs[0].grid(b=True, which='major',axis='y', linestyle='-')
         axs[0].grid(b=True, which='minor', axis='y', linestyle='--')
         axs[0].legend()
