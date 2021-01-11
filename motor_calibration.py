@@ -11,11 +11,13 @@ plt_use("Agg")
 from matplotlib import pyplot as plt
 
 #import costum files
-import process_phase
-import process_ripple
-import process_friction
-import process_report
-import plot_utils
+from utils import process_phase
+from utils import process_ripple
+from utils import process_friction
+from utils import process_report
+from utils import plot_utils
+from utils import move_utils
+from utils import database_utils
 
 ## Parameters:
 # path to test-pdo
@@ -26,8 +28,10 @@ cmd1 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/p
 cmd2 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/set-phase/set-phase')
 # path to ripple-calib to test test ripple and positionl offset
 cmd3 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/ripple-calib/ripple-calib')
-# path to friction-calib for inertia and friction identification
+# path to friction-calib for friction identification
 cmd4 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/friction-calib/friction-calib')
+# path to inertia-calib for inertia identification
+cmd5 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/inertia-calib/inertia-calib')
 # path to the configuration file for the motor and the test variables
 config_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
 
@@ -41,8 +45,9 @@ if os.system(cmd0 + ' ' + config_file):
 print(plot_utils.bcolors.OKBLUE + "[i] Ended test-pdo successfully" + plot_utils.bcolors.ENDC)
 
 #get updated yaml file
-list_of_files = glob.glob('/logs/*.yaml')
+list_of_files = glob.glob('/logs/*-results.yaml')
 config_file = max(list_of_files, key=os.path.getctime)
+config_file = move_utils.move_yaml(config_file)
 
 ## test phase angles
 print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
@@ -70,18 +75,30 @@ print(plot_utils.bcolors.OKBLUE + "[i] Ended ripple-calib successfully" + plot_u
 print(plot_utils.bcolors.OKBLUE + "[i] Processing ripple data" + plot_utils.bcolors.ENDC)
 config_file = process_ripple.process(yaml_file=config_file, plot_all=False)
 
-## Inertia and friction identification
+## Friction identification
 print(plot_utils.bcolors.OKBLUE + "[i] Starting friction-calib" + plot_utils.bcolors.ENDC)
 if os.system(cmd4 + ' ' + config_file):
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during friction-calib' + plot_utils.bcolors.ENDC)
 print(plot_utils.bcolors.OKBLUE + "[i] Ended friction-calib successfully" + plot_utils.bcolors.ENDC)
 
-# process extracted data
-print(plot_utils.bcolors.OKBLUE + "[i] Processing friction data" + plot_utils.bcolors.ENDC)
-process_friction.move_log()
-config_file = process_friction.process(yaml_file=config_file, plot_all=False)
+## Inertia identification
+print(plot_utils.bcolors.OKBLUE + "[i] Starting inertia-calib" + plot_utils.bcolors.ENDC)
+if os.system(cmd5 + ' ' + config_file):
+    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during inertia-calib' + plot_utils.bcolors.ENDC)
+move_utils.move_log(yaml_file=config_file)
+print(plot_utils.bcolors.OKBLUE + "[i] Ended inertia-calib successfully" + plot_utils.bcolors.ENDC)
 
+# process extracted data
+print(plot_utils.bcolors.OKBLUE + "[i] Processing friction and inertia data" + plot_utils.bcolors.ENDC)
+process_friction.process(yaml_file=config_file, plot_all=False)
+
+# generate report
 print(plot_utils.bcolors.OKBLUE + "[i] Genereating the report" + plot_utils.bcolors.ENDC)
 config_file = process_report.process(yaml_file=config_file)
+
+# generate report
+print(plot_utils.bcolors.OKBLUE + "[i] Uploading to database" + plot_utils.bcolors.ENDC)
+# TODO: send to database
+print(plot_utils.bcolors.OKBLUE + "[i] Upload compleated successfully" + plot_utils.bcolors.ENDC)
 
 print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)

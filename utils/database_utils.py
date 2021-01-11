@@ -196,25 +196,42 @@ class TestData:
             else:
                 self.has_inertia = False
 
-            if 'coulomb_and_stribeck_friction' in yaml_dict['friction']:
+            if 'coulomb_friction' in yaml_dict['friction']:
                 self.has_coulomb_friction = True
-                self.friction_dc_minus = yaml_dict['friction']['coulomb_and_stribeck_friction']['dc_minus']
-                self.friction_dc_plus = yaml_dict['friction']['coulomb_and_stribeck_friction']['dc_plus']
-                self.friction_sigma_minus = yaml_dict['friction']['coulomb_and_stribeck_friction']['sigma_minus']
-                self.friction_sigma_plus = yaml_dict['friction']['coulomb_and_stribeck_friction']['sigma_plus']
-                self.friction_model_RMSE  =  yaml_dict['friction']['friction_model_RMSE']
-                self.friction_model_NRMSE =  yaml_dict['friction']['friction_model_NRMSE']
+                self.friction_dc_minus = yaml_dict['friction']['coulomb_friction']['dc_minus']
+                self.friction_dc_plus  = yaml_dict['friction']['coulomb_friction']['dc_plus']
+                self.friction_gamma_coulomb = yaml_dict['friction']['coulomb_friction']['gamma']
             else:
                 self.has_coulomb_friction = False
 
             if 'viscous_friction' in yaml_dict['friction']:
                 self.has_viscous_friction = True
-                self.dv_minus = yaml_dict['friction']['viscous_friction']['dv_minus']
-                self.dv_plus = yaml_dict['friction']['viscous_friction']['dv_plus']
-                self.friction_model_RMSE  =  yaml_dict['friction']['friction_model_RMSE']
-                self.friction_model_NRMSE =  yaml_dict['friction']['friction_model_NRMSE']
+                self.friction_dv_minus = yaml_dict['friction']['viscous_friction']['dv_minus']
+                self.friction_dv_plus = yaml_dict['friction']['viscous_friction']['dv_plus']
+                self.friction_gamma_viscous = yaml_dict['friction']['viscous_friction']['gamma']
             else:
                 self.has_viscous_friction = False
+
+            if 'statistics' in yaml_dict['friction']:
+                self.has_friction_statistic = True
+                if self.has_inertia:
+                    self.inertia_model_RMSE  = yaml_dict['friction']['statistics']['inertia_model_RMSE']
+                    self.inertia_model_NRMSE = yaml_dict['friction']['statistics']['inertia_model_NRMSE']
+
+                if self.has_coulomb_friction or self.has_viscous_friction:
+                    self.friction_model_RMSE  = yaml_dict['friction']['statistics']['friction_model_RMSE']
+                    self.friction_model_NRMSE = yaml_dict['friction']['statistics']['friction_model_NRMSE']
+
+                if 'position_model_RMSE' in yaml_dict['friction']['statistics']:
+                    self.friction_simulation_pos_RMSE  = yaml_dict['friction']['statistics']['position_model_RMSE']
+                    self.friction_simulation_pos_NRMSE = yaml_dict['friction']['statistics']['position_model_NRMSE']
+                    self.friction_simulation_vel_RMSE  = yaml_dict['friction']['statistics']['velocity_model_RMSE']
+                    self.friction_simulation_vel_NRMSE = yaml_dict['friction']['statistics']['velocity_model_NRMSE']
+                    self.has_friction_simulation = True
+                else:
+                    self.has_friction_simulation = False
+            else:
+                self.has_friction_statistic = False
         else:
             self.has_friction = False
 
@@ -261,16 +278,37 @@ class TestData:
             if self.has_coulomb_friction:
                 out_dict.update({
                     'friction_dc_minus' : self.friction_dc_minus,
-                    'friction_dc_plus' : self.friction_dc_plus,
-                    'friction_sigma_minus' : self.friction_sigma_minus,
-                    'friction_sigma_plus' : self.friction_sigma_plus,
+                    'friction_dc_plus'  : self.friction_dc_plus,
+                    'friction_gamma_coulomb' : self.friction_gamma_coulomb
                 })
 
             if self.has_viscous_friction:
                 out_dict.update({
-                    'dv_minus' : self.dv_minus,
-                    'dv_plus' : self.dv_plus
+                    'friction_dv_minus' : self.friction_dv_minus,
+                    'friction_dv_plus'  : self.friction_dv_plus,
+                    'friction_gamma_viscous' : self.friction_gamma_viscous
                 })
+
+            if self.has_friction_statistic:
+                if self.has_inertia:
+                    out_dict.update({
+                        'inertia_model_RMSE'  : self.inertia_model_RMSE,
+                        'inertia_model_NRMSE' : self.inertia_model_NRMSE
+                    })
+
+                if self.has_coulomb_friction or self.has_viscous_friction:
+                    out_dict.update({
+                        'friction_model_RMSE'  : self.friction_model_RMSE,
+                        'friction_model_NRMSE' : self.friction_model_NRMSE
+                    })
+
+                if self.has_friction_simulation:
+                    out_dict.update({
+                        'friction_simulation_pos_RMSE'  : self.friction_simulation_pos_RMSE,
+                        'friction_simulation_pos_NRMSE' : self.friction_simulation_pos_NRMSE,
+                        'friction_simulation_vel_RMSE'  : self.friction_simulation_vel_RMSE,
+                        'friction_simulation_vel_NRMSE' : self.friction_simulation_vel_NRMSE
+                    })
 
         return out_dict
 
