@@ -34,6 +34,8 @@ cmd4 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/f
 cmd5 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/inertia-calib/inertia-calib')
 # path to the configuration file for the motor and the test variables
 config_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
+# path to credentials to connect to the motors' database
+credentials_file = os.path.expanduser('~/ecat_dev/motor_calibration')
 
 #print logo
 plot_utils.print_alberobotics()
@@ -98,7 +100,7 @@ config_file = process_report.process(yaml_file=config_file)
 
 # generate report
 print(plot_utils.bcolors.OKBLUE + "[i] Uploading to database" + plot_utils.bcolors.ENDC)
-# TODO: send to database
+database_utils.upload_from_yaml(credentials_file=credentials_file, yaml_file=config_file)
 print(plot_utils.bcolors.OKBLUE + "[i] Upload compleated successfully" + plot_utils.bcolors.ENDC)
 
 print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)

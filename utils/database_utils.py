@@ -12,11 +12,13 @@ class MotorData:
             yaml_dict = out_dict['results']
 
         if 'time' in out_dict['log']:
-            self.time = int(out_dict['log']['time'])
+            time = out_dict['log']['time']
+            self.time = f'{time[0:4]}-{time[4:6]}-{time[6:8]} {time[8:10]}:{time[10:12]}:{time[12:]}'
         elif yaml_file[-12:] == 'results.yaml':
-            self.time = int(yaml_file[-27:-13])
+            time = yaml_file[-27:-13]
+            self.time = f'{time[0:4]}-{time[4:6]}-{time[6:8]} {time[8:10]}:{time[10:12]}:{time[12:]}'
         else:
-            self.time = 0
+            self.time = '1000-01-01 00:00:00'
 
         if 'serial_Num_Act' in out_dict['log']:
             self.serial_Num_Act = out_dict['log']['serial_Num_Act']
@@ -130,10 +132,10 @@ class MotorData:
 
     def get_mysql_query(self, table='motor_data'):
         d = self.get_params()
-        keys = "INSERT INTO '" + table +"' ("
+        keys = "INSERT INTO " + table +" ("
         vals = "VALUES ("
         for k, v in d.items():
-            keys += "'"+k+"',"
+            keys += k+","
             vals += "'"+v+"'," if isinstance(v, str) else str(v)+","
         keys=keys[:-1]+') '
         vals=vals[:-1]+')'
@@ -148,11 +150,13 @@ class TestData:
             yaml_dict = out_dict['results']
 
         if 'time' in out_dict['log']:
-            self.time = int(out_dict['log']['time'])
+            time = out_dict['log']['time']
+            self.time = f'{time[0:4]}-{time[4:6]}-{time[6:8]} {time[8:10]}:{time[10:12]}:{time[12:]}'
         elif yaml_file[-12:] == 'results.yaml':
-            self.time = int(yaml_file[-27:-13])
+            time = yaml_file[-27:-13]
+            self.time = f'{time[0:4]}-{time[4:6]}-{time[6:8]} {time[8:10]}:{time[10:12]}:{time[12:]}'
         else:
-            self.time = 0
+            self.time = '1000-01-01 00:00:00'
 
         if 'serial_Num_Act' in out_dict['log']:
             self.serial_Num_Act = out_dict['log']['serial_Num_Act']
@@ -269,12 +273,6 @@ class TestData:
             if self.has_inertia:
                 out_dict.update({'motor_inertia' : self.motor_inertia})
 
-            if self.has_coulomb_friction or self.has_viscous_friction:
-                out_dict.update({
-                    'friction_model_RMSE ' : self.friction_model_RMSE ,
-                    'friction_model_NRMSE' : self.friction_model_NRMSE
-                })
-
             if self.has_coulomb_friction:
                 out_dict.update({
                     'friction_dc_minus' : self.friction_dc_minus,
@@ -314,10 +312,10 @@ class TestData:
 
     def get_mysql_query(self, table='test_data'):
         d = self.get_params()
-        keys = "INSERT INTO '" + table +"' ("
+        keys = "INSERT INTO " + table +" ("
         vals = "VALUES ("
         for k, v in d.items():
-            keys += "'"+k+"',"
+            keys += k+","
             vals += "'"+v+"'," if isinstance(v, str) else str(v)+","
         keys=keys[:-1]+') '
         vals=vals[:-1]+')'
@@ -357,29 +355,92 @@ def upload_from_yaml(credentials_file, yaml_file='NULL'):
             use_pure=True)
 
         if connection.is_connected():
-            print("Connected to MySQL database... MySQL Server version on ", connection.get_server_info())
+            print(f"[i] Connected to MySQL database `{credentials['database']}` at {credentials['host']} with user {credentials['user']}...\n    MySQL Server version on {connection.get_server_info()}")
 
         cursor = connection.cursor(prepared=True)
         cursor.execute(motor_query)
         cursor.execute(test_query)
+        connection.commit()
+
 
     except Error as e:
         print("Error while connecting to MySQL", e)
 
     finally:
+        print("[i] Executed all querries")
         cursor.close()
-        conn.close()
+        connection.close()
         print("[i] Connection to MySQL database closed")
+
+
+def test_server_connection(credentials_file):
+    # load credentials and database data
+    with open(credentials_file, 'r') as stream:
+        credentials = yaml.safe_load(stream)
+
+    # server details
+    print('Connection details:')
+    print('\t- server:\t' + credentials['host'])
+    print('\t- user:\t\t' + credentials['user'])
+    print('\t- database:\t' + credentials['database'])
+    if 'table_motor' in credentials:
+        print('\t- table_motor:\t' + credentials['table_motor'])
+    else:
+        print('\t- table_motor:\tNOT listed')
+
+    if 'table_test' in credentials:
+        print('\t- table_test:\t' + credentials['table_test'])
+    else:
+        print('\t- table_test:\tNOT listed')
+
+    # Connect to database and send data
+    print('\nTesting connection:')
+    try:
+        connection = mysql.connector.connect(host=credentials['host'],
+                                             database=credentials['database'],
+                                             user=credentials['user'],
+                                             password=credentials['password'],
+                                             use_pure=True)
+
+        if connection.is_connected():
+            print(
+                f"[i] Connected to MySQL database `{credentials['database']}` hosted at 'http://{credentials['host']}' (user '{credentials['user']}').\n    MySQL Server version on {connection.get_server_info()}"
+            )
+
+    except Error as e:
+        print("Error while connecting to MySQL", e)
+
+    finally:
+        connection.close()
+        print("Connection to MySQL database closed\n")
 
 
 if __name__ == "__main__":
     list_of_files = glob.glob('/logs/*.yaml')
-    yaml_file = max(list_of_files, key=os.path.getctime)
-    print('Loading: ' + yaml_file)
+    #yaml_file = max(list_of_files, key=os.path.getctime)
+    yaml_file = '/logs/ALE01-ELE01-H4236/2020-12-15--17-01-01/ALE01-ELE01-H4236-20201215170101-results.yaml'
+    credentials_file = '/home/tree/ecat_dev/motor_calibration/credentials.yaml'
+    print(f'Results:\t{yaml_file}\nCredentials:\t{credentials_file}\n')
 
+    test_server_connection(credentials_file)
+
+    print('Queries:')
     motor = MotorData(yaml_file)
-    print(motor.get_mysql_query())
-    print('\n\n\n')
+    print(motor.get_mysql_query() + '\n')
 
     test = TestData(yaml_file)
-    print(test.get_mysql_query())
+    print(test.get_mysql_query()  + '\n')
+
+    if False:
+        print('MotorData:\n\tlen:' + str(len(motor.get_params())) + '\n\titems:')
+        for k, v in motor.get_params().items():
+            v_ = v if isinstance(v, str) else str(v)
+            print('\t\t' + k + '\t\t\t' + v_ + '\t\t\t' + str(type(v)))
+
+        print('\nTestData:\n\tlen:' + str(len(test.get_params())) +
+              '\n\titems:')
+        for k, v in test.get_params().items():
+            v_ = v if isinstance(v, str) else str(v)
+            print('\t\t' + k + '\t\t\t' + v_ + '\t\t\t' + str(type(v)))
+    if False:
+        upload_from_yaml(credentials_file=credentials_file, yaml_file=yaml_file)
