@@ -351,7 +351,7 @@ def process(yaml_file, plot_all=False):
 if __name__ == "__main__":
     yaml_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
 
-    print(plot_utils.bcolors.OKBLUE + "[i] Starting process_ripple" + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting process_phase" + plot_utils.bcolors.ENDC)
     yaml_file = process(yaml_file=yaml_file, plot_all=False)
 
     print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)
