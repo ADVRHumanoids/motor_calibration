@@ -70,6 +70,13 @@ if os.system(cmd1b + ' ' + config_file):
 print(plot_utils.bcolors.OKBLUE + "[i] Ended set-phase successfully" + plot_utils.bcolors.ENDC)
 
 ## test torquecell's torsion bar stiffness and torque constant
+# prompt user to connect loadcell before continuing
+print("For torsion bar stiffness and torque constant calibration, the loadcell is needed.")
+while not prompt_user("""Before continuing make sure the loadcell is properly connected and the motor's flange is in contact with it.
+Continue?"""):
+    pass
+
+#run test
 print(plot_utils.bcolors.OKBLUE + "[i] Starting torque-calib" + plot_utils.bcolors.ENDC)
 if os.system(cmd2 + ' ' + config_file):
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during torque-calib' + plot_utils.bcolors.ENDC)
@@ -86,6 +93,13 @@ config_file = process_torque.process(yaml_file=config_file, plot_all=False)
 # print(plot_utils.bcolors.OKBLUE + "[i] Ended set-torque successfully" + plot_utils.bcolors.ENDC)
 
 ## test ripple and position dependant torque
+# prompt user to disconnect loadcell before continuing
+print("For ripple and position dependant torque, the motor must be free to move.")
+while not prompt_user("""Before continuing make sure the motor's output flange has nothing connected.
+Continue?"""):
+    pass
+
+# run test
 print(plot_utils.bcolors.OKBLUE + "[i] Starting ripple-calib" + plot_utils.bcolors.ENDC)
 if os.system(cmd3 + ' ' + config_file):
     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during ripple-calib' + plot_utils.bcolors.ENDC)
