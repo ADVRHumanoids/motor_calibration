@@ -126,4 +126,23 @@ print(plot_utils.bcolors.OKBLUE + "[i] Ended inertia-calib successfully" + plot_
 print(plot_utils.bcolors.OKBLUE + "[i] Processing friction and inertia data" + plot_utils.bcolors.ENDC)
 process_friction.process(yaml_file=config_file, plot_all=False)
 
+# ## TODO: Frequency response calibration
+# # prompt user to fully lock the motor before continuing
+# print("For frequency response calibration, the motor must be fully locked")
+# while not prompt_user("""Before continuing make sure the motor's output flange is properly locked.
+# Continue?"""):
+#     pass
+
+# # TODO: run test
+# print(plot_utils.bcolors.OKBLUE + "[i] Starting frequency-calib" + plot_utils.bcolors.ENDC)
+# if os.system(cmd5 + ' ' + config_file):
+#     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during frequency-calib' + plot_utils.bcolors.ENDC)
+# move_utils.move_log(yaml_file=config_file)
+# print(plot_utils.bcolors.OKBLUE + "[i] Ended frequency-calib successfully" + plot_utils.bcolors.ENDC)
+
+# # TODO: process extracted data
+# print(plot_utils.bcolors.OKBLUE + "[i] Processing frequency response data" + plot_utils.bcolors.ENDC)
+# process_friction.process(yaml_file=config_file, plot_all=False)
+
+## All done
 print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ended calibraiton successfully' + plot_utils.bcolors.ENDC)
