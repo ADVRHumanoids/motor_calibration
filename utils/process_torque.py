@@ -105,7 +105,6 @@ def process(yaml_file, plot_all=False):
     odr_data = odr.RealData(np.array(tor_x), tor_cell_np, sx=sx, sy=sy)
     odr_obj = odr.ODR(odr_data, odr_linear, beta0=[Torsion_bar_stiff, tor_cell[0]-tor_motor[0]])
     odr_out = odr_obj.run()
-    odr_out.pprint()
     tor_odr = [linear_func(odr_out.beta,x) for x in tor_x]
 
     # store results
@@ -170,6 +169,147 @@ def process(yaml_file, plot_all=False):
     fig_name = new_head + tail[:-4] + '2.png'
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+
+    # Plot currentvs loadcell torque oveer the all experiment --------------------------------------------------------------------------------------------
+    i_ref = [i_ref_[v] for v in range(0,len(i_ref_)) if stationary[v]]
+    #i_steps = list(dict.fromkeys(i_ref))
+
+    # find avarage torque for a ginve current ref
+    i_steps = []
+    i_reps = []
+    tor_avar = []
+    for t,i in zip(tor_cell,i_ref):
+        i=round(i,2)
+        if i not in i_steps:
+            i_steps.append(i)
+            i_reps.append(1)
+            tor_avar.append(t)
+        else:
+            tor_avar[i_steps.index(i)] += t
+            i_reps[i_steps.index(i)] += 1
+    tor_avar = [t/i for t,i in zip(tor_avar, i_reps)]
+    tor_SDO = [i*torque_const + tor_avar[0] for i in i_steps]
+
+
+
+    def poly2_func(p, x):
+        a, b, c = p
+        return a*x*x + b*x + c
+    odr_linear = odr.Model(poly2_func)
+    sx=statistics.stdev(i_ref)
+    sy=statistics.stdev(tor_cell)
+    odr_data = odr.RealData(np.array(i_ref), np.array(tor_cell), sx=sx, sy=sy)
+    odr_obj = odr.ODR(odr_data, odr_linear, beta0=[-1,-max(i_steps),-max(tor_avar)])
+    odr_out = odr_obj.run()
+    tor_odr = [poly2_func(odr_out.beta,x) for x in i_steps]
+
+
+    fig, axs = plt.subplots()
+    axs.axhline(0, color='black', lw=1.0)
+    axs.axvline(0, color='black', lw=1.0)
+
+    #l0, = axs.plot(i_fb_, [i*torque_const for i in i_fb_], color='#8e8e8e', marker='.', markersize=0.5, linestyle='')
+    l0, = axs.plot(i_ref_, tor_cell_, color='#8e8e8e', marker='.', markersize=0.5, linestyle='')
+    l1, = axs.plot(i_ref, tor_cell, color='#000000', marker='.', markersize=0.5, linestyle='')
+    l2, = axs.plot(i_steps, tor_SDO, color='#ff7f0e', marker='.', markersize=3.0, linestyle='')
+    for i,t in zip(i_steps, tor_SDO):
+        axs.plot([i, i], [t*0.9, t*1.1], color='#ff7f0e', alpha=0.2, marker='', linestyle='-')
+    #axs.fill_between(i_ref, [t*0.9 for t in tor_SDO], [t*1.1 for t in tor_SDO], color='#ff7f0e', alpha=0.2, interpolate=True)
+    l3, = axs.plot(i_steps, tor_avar, color='#1f77b4', marker='.', markersize=3.0, linestyle='')
+    # axs.plot(i_steps, tor_avar, color='#1f77b4', marker='', linestyle='--', alpha=0.5)
+
+
+    # l1, = axs.plot(i_ref_, [i*torque_const for i in i_ref_], color='#000000', marker='.', markersize=0.5, linestyle='')
+    # l1, = axs.plot(i_ref, [i*torque_const for i in i_ref], color='#000000', marker='.', markersize=0.5, linestyle='')
+    # l1, = axs.plot(i_ref, tor_cell, color='#8e8e8e', marker='.', markersize=0.5, linestyle='')
+    # l2 = axs.plot(i_ref, tor_SDO, color='#1f77b4', linestyle='-', linewidth=1)
+    # l3, = axs.plot(i_ref, tor_linear, color='#ff7f0e', linestyle='-', linewidth=1)
+    # l4, = axs.plot(i_steps, tor_odr, color='#2ca02c', linestyle='--', linewidth=1, alpha=0.5)
+    # l4, = axs.plot(i_rising, t_rising, color='#ff0000', marker='.', markersize=0.5, linestyle='')
+    axs.legend(handles=(l0, l1, l2, l3), labels=('full test datapoints', 't_log datapoints', 'expected (10% tollerance)', 'test avarage'))
+    # axs.legend(handles=(l0, l1, l3, l2, l4), labels=('full test datapoints', 't_log datapoints', 'avarage', 'SDO','scipy.odr'))
+    # axs.legend(handles=(l0, l1, l2, l4), labels=('full test datapoints', 't_log datapoints', 'SDO','t_log w/ rising current only'))
+
+    axs.set_ylabel('Torque form loadcell reading (Nm)')
+    axs.set_xlabel('Current reference (A)')
+    plt_max = (max(i_ref) -min(i_ref)) * 0.05
+    axs.set_xlim(min(i_ref)-plt_max, max(i_ref)+plt_max)
+    #plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    plt_max = (max(tor_cell) -min(tor_cell)) * 0.05
+    axs.set_ylim(min(tor_cell)-plt_max, max(max(tor_cell),max(i_ref)*torque_const)+plt_max)
+    axs.grid(b=True, which='major', axis='y', linestyle='-')
+    axs.grid(b=True, which='minor', axis='y', linestyle=':')
+    axs.grid(b=True, which='major', axis='x', linestyle=':')
+    axs.spines['top'].set_visible(False)
+    axs.spines['right'].set_visible(False)
+    axs.spines['left'].set_visible(False)
+    axs.spines['bottom'].set_visible(False)
+
+    # Save the graph
+    head, tail = os.path.split(log_file)
+    new_head = head + '/images/'
+    if os.path.isdir(new_head) is False:
+        try:
+            os.makedirs(new_head)
+        except OSError:
+            print("Creation of the directory %s failed" % new_head)
+    fig_name = new_head + tail[:-4] + '3.png'
+    print('Saving graph as: ' + fig_name)
+    plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+
+    #-----------------------------------------------------------------------------------
+    # get values only for rising current
+    i_rising = []
+    t_rising = []
+    rising = True
+    for i in range(1,len(i_ref)):
+        if i_ref[i] < i_ref[i-1]:
+            rising = False
+        elif i_ref[i] == 0.0:
+            rising= True
+
+        if rising:
+            i_rising.append(i_ref[i])
+            t_rising.append(tor_cell[i])
+
+    tor_SDO_rising=[i*torque_const + tor_avar[0] for i in i_rising]
+    efficiency = [100*t1/t2 for t1, t2 in zip(t_rising,tor_SDO_rising) if t2 > 0]
+    i_plot = [i for i, t2 in zip(i_rising,tor_SDO_rising) if t2 > 0]
+
+    fig, axs = plt.subplots()
+    axs.axhline(0, color='black', lw=1.2)
+    axs.axvline(0, color='black', lw=1.2)
+
+    l0, = axs.plot(i_plot, efficiency, color='#ff7f0e', marker='.', markersize=3.0, linestyle='')
+
+    #axs.set_ylabel('Static Efficiency (%)')
+    axs.set_ylabel('Red dots / Orange dots (%)')
+    axs.set_xlabel('Current reference (A)')
+    plt_max = (max(i_ref) -min(i_ref)) * 0.05
+    axs.set_xlim(min(i_ref)-plt_max, max(i_ref)+plt_max)
+    #plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+    #plt_max = (max(tor_cell) -min(tor_cell)) * 0.05
+    #axs.set_ylim(min(tor_cell)-plt_max, max(max(tor_cell),max(i_ref)*torque_const)+plt_max)
+    axs.grid(b=True, which='major', axis='y', linestyle='-')
+    axs.grid(b=True, which='minor', axis='y', linestyle=':')
+    axs.grid(b=True, which='major', axis='x', linestyle=':')
+    axs.spines['top'].set_visible(False)
+    axs.spines['right'].set_visible(False)
+    axs.spines['left'].set_visible(False)
+    axs.spines['bottom'].set_visible(False)
+
+    # Save the graph
+    head, tail = os.path.split(log_file)
+    new_head = head + '/images/'
+    if os.path.isdir(new_head) is False:
+        try:
+            os.makedirs(new_head)
+        except OSError:
+            print("Creation of the directory %s failed" % new_head)
+    fig_name = new_head + tail[:-4] + '4.png'
+    print('Saving graph as: ' + fig_name)
+    plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+
 
     # Save result ------------------------------------------------------------------------------------------
     if 'name' in out_dict['log']:
