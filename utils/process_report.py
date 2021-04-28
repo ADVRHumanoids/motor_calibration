@@ -2,7 +2,6 @@
 
 import os
 import sys
-import glob
 import yaml
 import numpy as np
 from fpdf import FPDF
@@ -42,38 +41,55 @@ class PDF(FPDF):
         self.cell(w=0, h=10, txt='Page ' + str(self.page_no()), border=0, ln=0, align='C')
 
 def process(yaml_file='NULL'):
+
     # load results
     if yaml_file == 'NULL':
-        list_of_files = glob.glob('/logs/*.yaml')
-        yaml_file = max(list_of_files, key=os.path.getctime)
-        image_base_path = yaml_file[:-len("-results.yaml")]
-    else:
-        head, tail = os.path.split(yaml_file[:-len("-results.yaml")])
-        image_base_path = head + '/images/' + tail
+        raise Exception('missing required yaml file')
 
     print('[i] Generating report from: ' + yaml_file)
-    with open(yaml_file, 'r') as stream:
-        out_dict = yaml.safe_load(stream)
+    with open(yaml_file) as f:
+        try:
+            out_dict = yaml.safe_load(f)
+        except Exception:
+            raise Exception('error in yaml parsing')
+
+
+    if 'results' in out_dict:
         yaml_dict = out_dict['results']
+    else:
+            raise Exception("missing 'results' field in yaml file")
+
+    # find logs
+    head, tail =os.path.split(yaml_file)
 
     if 'location' in out_dict['log']:
-        len_loc = len(out_dict['log']['location'])
+        head = out_dict['log']['location']
     else:
-        len_loc = len('/logs/')
+        head, _ =os.path.split(yaml_file)
+
     if 'name' in out_dict['log']:
-        motor_name = out_dict['log']['name']
+        code_string = out_dict['log']['name']
+    else:
+        _, tail =os.path.split(yaml_file)
+        code_string = tail[:-len("-results.yaml")]
+
+    # set path to save graphs
+    if len(head)>6 and head[-6:]=='/logs/':
+        image_base_path = f'{head[:-6]}/images/{code_string}'
+    else:
+        image_base_path = f'{head}/images/{code_string}'
 
     title_txt = "Calibration Results"
     #pdf.set_title_txt = title_txt
 
     ## add substitle
-    motor_id = yaml_file[len_loc:len_loc + 17]
-    time=yaml_file[len_loc+18:len_loc+22] + '/' + \
-         yaml_file[len_loc+22:len_loc+24] + '/' + \
-         yaml_file[len_loc+24:len_loc+26] + ' - ' + \
-         yaml_file[len_loc+26:len_loc+28] + ':' + \
-         yaml_file[len_loc+28:len_loc+30] + ':' + \
-         yaml_file[len_loc + 30 : len_loc + 32]
+    motor_id = code_string[0:17]
+    time = code_string[-20:-16] + '/' \
+         + code_string[-15:-13] + '/' \
+         + code_string[-12:-10] + ' - ' \
+         + code_string[-8:-6] + ':' \
+         + code_string[-5:-3] + ':' \
+         + code_string[-2:]
     subtitle_txt = 'Actuator: ' + motor_id
 
     ## load phase data
@@ -109,8 +125,8 @@ def process(yaml_file='NULL'):
         pdf.cell(effective_page_width * 0.32, th, 'Orange', border=0)
     elif motor_id[1:3] == 'PO':
         pdf.cell(effective_page_width * 0.32, th, 'Pomegranade', border=0)
-    elif "motor_name" in locals():
-        pdf.cell(effective_page_width * 0.32, th, motor_name[:-2], border=0)
+    #elif "motor_name" in locals():
+    #    pdf.cell(effective_page_width * 0.32, th, yaml_dict['log']['name'][:-2], border=0)
     else:
         pdf.cell(effective_page_width * 0.32, th, 'Unknown', border=0)
     pdf.ln(th)
@@ -328,7 +344,7 @@ def process(yaml_file='NULL'):
     else:
         pdf.multi_cell(w=effective_page_width, h=5, txt=txt_description.format(steps=25))
 
-    pdf.image(name=image_base_path + '-phase_calib.png',
+    pdf.image(name=image_base_path + '_phase-calib.png',
               h = effective_page_heigth * 0.45,
               x = effective_page_width  * 0.11,
               y = effective_page_heigth / 2 )
@@ -408,7 +424,7 @@ def process(yaml_file='NULL'):
             pdf.cell(effective_page_width / 12, th, 'phase:', border=0, align="L")
             pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p3']), border=0, align="R")
 
-    pdf.image(name=image_base_path + '-ripple_calib.png',
+    pdf.image(name=image_base_path + '_ripple-calib.png',
               h = effective_page_heigth * 0.45,
               x = 20,
               y = 154)
@@ -497,12 +513,11 @@ def process(yaml_file='NULL'):
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_RMSE']), border=0, align="R")
 
 
-
-    pdf.image(name=image_base_path + '-friction_calib-torque_vs_w.png',
+    pdf.image(name=image_base_path + '_friction-calib_torque-vs-w.png',
               w=effective_page_width * 2 / 3,
               x=effective_page_width * 0.4,
               y=effective_page_heigth * 1 / 3 - 7)
-    pdf.image(name=image_base_path + '-friction_calib-simulation.png',
+    pdf.image(name=image_base_path + '_friction-calib_simulation.png',
               w=effective_page_width * 2 / 3,
               x=effective_page_width * 0.4,
               y=effective_page_heigth * 2 / 3 - 5)
@@ -514,10 +529,10 @@ def process(yaml_file='NULL'):
     pdf.set_author('m-tartari')
 
     # save the pdf with name .pdf
-    pdf_file = yaml_file[:-13] + '-report.pdf'
+    pdf_file = yaml_file[:-13] + '_report.pdf'
     print('[i] Report saved as: ' + pdf_file)
     pdf.output(pdf_file, 'F')
 
 
 if __name__ == "__main__":
-    process()
+    process(sys.argv[1])
