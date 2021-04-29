@@ -13,36 +13,64 @@ from matplotlib import pyplot as plt
 #import costum
 from utils import plot_utils
 
-
 def process(yaml_file, plot_all=False):
     plt.rcParams['savefig.dpi'] = 300
 
     # read parameters from yaml file
     print('[i] Using yaml_file: ' + yaml_file)
-    with open(yaml_file, 'r') as stream:
-        out_dict = yaml.safe_load(stream)
+    with open(yaml_file) as f:
+        try:
+            out_dict = yaml.safe_load(f)
+        except Exception:
+            raise Exception('error in yaml parsing')
 
+    # find logs
+    head, tail =os.path.split(yaml_file)
+
+    if 'location' in out_dict['log']:
+        head = out_dict['log']['location']
+    else:
+        head, _ =os.path.split(yaml_file)
+
+    if 'name' in out_dict['log']:
+        code_string = out_dict['log']['name']
+    else:
+        _, tail =os.path.split(yaml_file)
+        code_string = tail[:-len("-results.yaml")]
+
+    # set path to save graphs
+    if len(head)>6 and head[-6:]=='/logs/':
+        new_head = f'{head[:-6]}/images/'
+    else:
+        new_head = f'{head}/images/'
+
+    if os.path.isdir(new_head) is False:
+        try:
+            os.makedirs(new_head)
+        except OSError:
+            print("Creation of the directory %s failed" % new_head)
+    image_base_path= new_head +f'{code_string}_torque-calib'
+
+    # load params
     Torsion_bar_stiff = float(out_dict['results']['flash_params']['Torsion_bar_stiff'])
     torque_const = float(out_dict['results']['flash_params']['motorTorqueConstant']) * float(out_dict['results']['flash_params']['Motor_gear_ratio'])
 
-    # read data from log_file ----------------------------------------------------------------------------------------------------------------------------
-    # list_of_files = glob.glob('/logs/*-torque_calib.log') #get lastest log
-    # log_file = max(list_of_files, key=os.path.getctime)
-    log_file=yaml_file[:-len('-results.yaml')]+'-torque_calib.log'
+    log_file=head+f'{code_string}_torque-calib.log'
     print('[i] Reading log_file: ' + log_file)
 
-    print('[i] Post-processing torque data')
     # log format: '%u64\t%u\t%f\t%f\t%f\t%f\t%f\t%f'
-    ns_ = [np.uint64(x.split('\t')[0]) for x in open(log_file).readlines()]
+    ns_        = [np.uint64(x.split('\t')[0]) for x in open(log_file).readlines()]
     stationary = [np.uint32(x.split('\t')[1]) for x in open(log_file).readlines()]
-    tor_cell_ = [float(x.split('\t')[2]) for x in open(log_file).readlines()]
-    tor_motor_ = [float(x.split('\t')[3]) for x in open(log_file).readlines()]
-    pos_link = [float(x.split('\t')[4]) for x in open(log_file).readlines()]
-    pos_motor = [float(x.split('\t')[5]) for x in open(log_file).readlines()]
-    i_ref_ = [float(x.split('\t')[6]) for x in open(log_file).readlines()]
-    i_fb_ = [float(x.split('\t')[7]) for x in open(log_file).readlines()]
+    tor_cell_  = [    float(x.split('\t')[2]) for x in open(log_file).readlines()]
+    tor_motor_ = [    float(x.split('\t')[3]) for x in open(log_file).readlines()]
+    pos_link   = [    float(x.split('\t')[4]) for x in open(log_file).readlines()]
+    pos_motor  = [    float(x.split('\t')[5]) for x in open(log_file).readlines()]
+    i_ref_     = [    float(x.split('\t')[6]) for x in open(log_file).readlines()]
+    i_fb_      = [    float(x.split('\t')[7]) for x in open(log_file).readlines()]
 
+    print('loaded ',len(ns_), ' points')
 
+    print('[i] Processing data')
     # Plot current, mototr torque and loadcell torque oveer the all experiment ---------------------------------------------------------------------------
     fig, axs = plt.subplots()
     l0, = axs.plot(ns_, [i*torque_const for i in i_fb_], color='#8e8e8e', marker='.', markersize=0.5, linestyle='')
@@ -68,14 +96,7 @@ def process(yaml_file, plot_all=False):
         plt.show()
 
     # Save the graph
-    head, tail = os.path.split(log_file)
-    new_head = head + '/images/'
-    if os.path.isdir(new_head) is False:
-        try:
-            os.makedirs(new_head)
-        except OSError:
-            print("Creation of the directory %s failed" % new_head)
-    fig_name = new_head + tail[:-4] + '1.png'
+    fig_name = image_base_path + '1.png'
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
@@ -87,8 +108,6 @@ def process(yaml_file, plot_all=False):
     tor_cell_np = np.array(tor_cell)
     tor_displ = np.array([t/Torsion_bar_stiff for t in tor_motor]).reshape((-1, 1))
     tor_SDO = [Torsion_bar_stiff*t+tor_cell[0]-tor_motor[0] for t in tor_displ]
-
-    print('loaded ',len(tor_cell_), ' points')
 
     model = LinearRegression().fit(tor_displ,tor_cell)
     r_sq = model.score(tor_displ,tor_cell)
@@ -158,15 +177,9 @@ def process(yaml_file, plot_all=False):
     Torsion_bar_stiff=RESULT[int(np.argsort(NRMSE)[0])]
     print(plot_utils.bcolors.OKGREEN + u'[\u2713] Result: Torsion_bar_stiff = ' + str(Torsion_bar_stiff) + plot_utils.bcolors.ENDC)
 
+
     # Save the graph
-    head, tail = os.path.split(log_file)
-    new_head = head + '/images/'
-    if os.path.isdir(new_head) is False:
-        try:
-            os.makedirs(new_head)
-        except OSError:
-            print("Creation of the directory %s failed" % new_head)
-    fig_name = new_head + tail[:-4] + '2.png'
+    fig_name = image_base_path + '2.png'
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
@@ -246,14 +259,7 @@ def process(yaml_file, plot_all=False):
     axs.spines['bottom'].set_visible(False)
 
     # Save the graph
-    head, tail = os.path.split(log_file)
-    new_head = head + '/images/'
-    if os.path.isdir(new_head) is False:
-        try:
-            os.makedirs(new_head)
-        except OSError:
-            print("Creation of the directory %s failed" % new_head)
-    fig_name = new_head + tail[:-4] + '3.png'
+    fig_name = image_base_path + '3.png'
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
@@ -299,14 +305,7 @@ def process(yaml_file, plot_all=False):
     axs.spines['bottom'].set_visible(False)
 
     # Save the graph
-    head, tail = os.path.split(log_file)
-    new_head = head + '/images/'
-    if os.path.isdir(new_head) is False:
-        try:
-            os.makedirs(new_head)
-        except OSError:
-            print("Creation of the directory %s failed" % new_head)
-    fig_name = new_head + tail[:-4] + '4.png'
+    fig_name = image_base_path + '4.png'
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
