@@ -49,9 +49,8 @@ if os.system(cmd0 + ' ' + config_file):
 print(plot_utils.bcolors.OKBLUE + "[i] Ended test-pdo successfully" + plot_utils.bcolors.ENDC)
 
 #get updated yaml file
-list_of_files = glob.glob('/logs/*-results.yaml')
+list_of_files = glob.glob('/logs/**/*_results.yaml', recursive=True)
 config_file = max(list_of_files, key=os.path.getctime)
-config_file = move_utils.move_yaml(config_file)
 
 ## test phase angles
 print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
