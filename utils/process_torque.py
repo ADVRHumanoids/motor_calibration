@@ -140,7 +140,7 @@ def process(yaml_file, plot_all=False):
 
     print('SDO                    :{:.3f}\tNRMSE:{:.5f}'.format(RESULT[0], NRMSE[0]))
     print('sklean.LinearRegression:{:.3f}\tNRMSE:{:.5f}'.format(RESULT[1], NRMSE[1]))
-    print('scipy.ord              :{:.3f}\tNRMSE:{:.5f}'.format(RESULT[2], NRMSE[2]))
+    print('scipy.ord (linear)     :{:.3f}\tNRMSE:{:.5f}'.format(RESULT[2], NRMSE[2]))
 
     ## plot
     fig, axs = plt.subplots()
@@ -152,11 +152,13 @@ def process(yaml_file, plot_all=False):
     #axs.legend(handles=(l1, l2), labels=('full test','t_log only'))
     # l1, = axs.plot(tor_displ, tor_cell, color='#8e8e8e', marker='.', markersize=0.5, linestyle='')
     l2, = axs.plot(tor_displ,tor_SDO, color='#1f77b4', linestyle='-', linewidth=1)
-    l3, = axs.plot(tor_displ, tor_linear, color='#ff7f0e', linestyle='-', linewidth=1)
-    l4, = axs.plot(tor_displ, tor_odr, color='#2ca02c', linestyle='-', linewidth=1)
-    axs.legend(handles=(l0, l1, l2, l3, l4), labels=('full test datapoints', 't_log datapoints', 'SDO', 'sklean.LinearRegression','scipy.odr'))
+    # l3, = axs.plot(tor_displ, tor_linear, color='#ff7f0e', linestyle='-', linewidth=1)
+    # l4, = axs.plot(tor_displ, tor_odr, color='#2ca02c', linestyle='-', linewidth=1)
+    # axs.legend(handles=(l0, l1, l2, l3, l4), labels=('full test datapoints', 't_log datapoints', 'SDO', 'sklean.LinearRegression','scipy.odr'))
+    l3, = axs.plot(tor_displ, tor_odr, color='#ff7f0e', linestyle='-', linewidth=1)
+    axs.legend(handles=(l0, l1, l2, l3), labels=('full test datapoints', 't_log datapoints', 'SDO','Total least squares'))
 
-    axs.set_ylabel('Torque form loadcell reading (Nm)')
+    axs.set_ylabel('Torque from loadcell reading (Nm)')
     axs.set_xlabel('Motor torque sensor displacement (rad)')
     plt_max = (max(tor_displ) -min(tor_displ)) * 0.05
     axs.set_xlim(min(tor_displ)-plt_max, max(tor_displ)+plt_max)
@@ -174,7 +176,9 @@ def process(yaml_file, plot_all=False):
     if plot_all:
         plt.show()
 
-    Torsion_bar_stiff=RESULT[int(np.argsort(NRMSE)[0])]
+    # we desided to keep only the result of ODR
+    Torsion_bar_stiff=RESULT[2]
+    Torsion_bar_stiff_NRMSE=NRMSE[2]
     print(plot_utils.bcolors.OKGREEN + u'[\u2713] Result: Torsion_bar_stiff = ' + str(Torsion_bar_stiff) + plot_utils.bcolors.ENDC)
 
 
@@ -203,18 +207,59 @@ def process(yaml_file, plot_all=False):
     tor_avar = [t/i for t,i in zip(tor_avar, i_reps)]
     tor_SDO = [i*torque_const + tor_avar[0] for i in i_steps]
 
+    # get values only for rising current
+    i_rising = []
+    t_rising = []
+    rising = True
+    for i in range(1,len(i_ref)):
+        if i_ref[i] < i_ref[i-1]:
+            rising = False
+        elif i_ref[i] == 0.0:
+            rising= True
 
+        if rising:
+            i_rising.append(i_ref[i])
+            t_rising.append(tor_cell[i])
+
+    tor_SDO_rising=[i*torque_const + tor_avar[0] for i in i_rising]
+    efficiency = [100*t1/t2 for t1, t2 in zip(t_rising,tor_SDO_rising) if t2 > 0]
+    i_plot = [i for i, t2 in zip(i_rising,tor_SDO_rising) if t2 > 0]
+
+
+    odr_linear = odr.Model(linear_func)
+    sx=statistics.stdev(i_rising)
+    sy=statistics.stdev(t_rising)
+    odr_data = odr.RealData(np.array(i_rising), np.array(t_rising), sx=sx, sy=sy)
+    odr_obj = odr.ODR(odr_data, odr_linear, beta0=[torque_const,tor_avar[0]])
+    odr_out = odr_obj.run()
+    tor_odr = [linear_func(odr_out.beta,x) for x in i_rising]
 
     def poly2_func(p, x):
         a, b, c = p
         return a*x*x + b*x + c
     odr_linear = odr.Model(poly2_func)
-    sx=statistics.stdev(i_ref)
-    sy=statistics.stdev(tor_cell)
-    odr_data = odr.RealData(np.array(i_ref), np.array(tor_cell), sx=sx, sy=sy)
+    sx=statistics.stdev(i_rising)
+    sy=statistics.stdev(t_rising)
+    odr_data = odr.RealData(np.array(i_rising), np.array(t_rising), sx=sx, sy=sy)
     odr_obj = odr.ODR(odr_data, odr_linear, beta0=[-1,-max(i_steps),-max(tor_avar)])
-    odr_out = odr_obj.run()
-    tor_odr = [poly2_func(odr_out.beta,x) for x in i_steps]
+    odr_out2 = odr_obj.run()
+    tor_odr2 = [poly2_func(odr_out2.beta,x) for x in i_rising]
+
+    # store results
+    RESULT = []
+    RESULT.append(Torsion_bar_stiff)
+    RESULT.append(odr_out.beta[0])
+    RESULT.append(odr_out2.beta[0])
+    #compute Root Mean Squared Error
+    NRMSE=[]
+    NRMSE.append(np.sqrt(np.mean(np.square([t_rising[v] - tor_SDO_rising[v] for v in range(0,len(i_rising))])))/(max(t_rising)-min(t_rising)))
+    NRMSE.append(np.sqrt(np.mean(np.square([t_rising[v] - tor_odr[v]  for v in range(0,len(i_rising))])))/(max(t_rising)-min(t_rising)))
+    NRMSE.append(np.sqrt(np.mean(np.square([t_rising[v] - tor_odr2[v] for v in range(0,len(i_rising))])))/(max(t_rising)-min(t_rising)))
+    #RMSE =[v/min(RMSE) for v in RMSE]
+
+    print('SDO                :{:.2f}  {:.2f}  \t NRMSE:{:.5f}'.format(torque_const, tor_avar[0], NRMSE[0]))
+    print('scipy.ord (linear) :{:.2f}  {:.2f}  \t NRMSE:{:.5f}'.format(odr_out.beta[0], odr_out.beta[1], NRMSE[1]))
+    print('scipy.ord (poly2)  :{:.2f}  {:.2f}  {:.2f}\t NRMSE:{:.5f}'.format(odr_out2.beta[0], odr_out2.beta[1], odr_out2.beta[2], NRMSE[2]))
 
 
     fig, axs = plt.subplots()
@@ -224,11 +269,10 @@ def process(yaml_file, plot_all=False):
     #l0, = axs.plot(i_fb_, [i*torque_const for i in i_fb_], color='#8e8e8e', marker='.', markersize=0.5, linestyle='')
     l0, = axs.plot(i_ref_, tor_cell_, color='#8e8e8e', marker='.', markersize=0.5, linestyle='')
     l1, = axs.plot(i_ref, tor_cell, color='#000000', marker='.', markersize=0.5, linestyle='')
-    l2, = axs.plot(i_steps, tor_SDO, color='#ff7f0e', marker='.', markersize=3.0, linestyle='')
+    l2, = axs.plot(i_steps, tor_SDO, color='#ff7f0e', marker='.', markersize=3.0, linestyle='-', alpha=0.5)
     for i,t in zip(i_steps, tor_SDO):
         axs.plot([i, i], [t*0.9, t*1.1], color='#ff7f0e', alpha=0.2, marker='', linestyle='-')
     #axs.fill_between(i_ref, [t*0.9 for t in tor_SDO], [t*1.1 for t in tor_SDO], color='#ff7f0e', alpha=0.2, interpolate=True)
-    l3, = axs.plot(i_steps, tor_avar, color='#1f77b4', marker='.', markersize=3.0, linestyle='')
     # axs.plot(i_steps, tor_avar, color='#1f77b4', marker='', linestyle='--', alpha=0.5)
 
 
@@ -238,12 +282,15 @@ def process(yaml_file, plot_all=False):
     # l2 = axs.plot(i_ref, tor_SDO, color='#1f77b4', linestyle='-', linewidth=1)
     # l3, = axs.plot(i_ref, tor_linear, color='#ff7f0e', linestyle='-', linewidth=1)
     # l4, = axs.plot(i_steps, tor_odr, color='#2ca02c', linestyle='--', linewidth=1, alpha=0.5)
-    # l4, = axs.plot(i_rising, t_rising, color='#ff0000', marker='.', markersize=0.5, linestyle='')
-    axs.legend(handles=(l0, l1, l2, l3), labels=('full test datapoints', 't_log datapoints', 'expected (10% tollerance)', 'test avarage'))
+    l3, = axs.plot(i_rising, t_rising, color='#ff0000', marker='.', markersize=0.5, linestyle='')
+    l3b,= axs.plot(i_steps, tor_avar, color='#005794', marker='.', markersize=3.0, linestyle='')
+    l4, = axs.plot(i_steps, [linear_func(odr_out.beta,x) for x in i_steps], color='#1f77b4', marker='.', markersize=3.0, linestyle='-', alpha=0.5)
+    l5, = axs.plot(i_steps, [poly2_func(odr_out2.beta,x) for x in i_steps], color='#2ca02c', marker='.', markersize=3.0, linestyle='-', alpha=0.5)
+    # axs.legend(handles=(l0, l1, l2, l3), labels=('full test datapoints', 't_log datapoints', 'expected (10% tollerance)', 'test avarage'))
     # axs.legend(handles=(l0, l1, l3, l2, l4), labels=('full test datapoints', 't_log datapoints', 'avarage', 'SDO','scipy.odr'))
-    # axs.legend(handles=(l0, l1, l2, l4), labels=('full test datapoints', 't_log datapoints', 'SDO','t_log w/ rising current only'))
+    axs.legend(handles=(l0, l1, l3, l3b, l2, l4, l5), labels=('full test datapoints', 't_log datapoints', 't_log w/ rising current only', 'avarage', 'SDO', 'scipy.ord (linear)','scipy.ord (poly2)'))
 
-    axs.set_ylabel('Torque form loadcell reading (Nm)')
+    axs.set_ylabel('Torque from loadcell reading (Nm)')
     axs.set_xlabel('Current reference (A)')
     plt_max = (max(i_ref) -min(i_ref)) * 0.05
     axs.set_xlim(min(i_ref)-plt_max, max(i_ref)+plt_max)
@@ -264,23 +311,6 @@ def process(yaml_file, plot_all=False):
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
     #-----------------------------------------------------------------------------------
-    # get values only for rising current
-    i_rising = []
-    t_rising = []
-    rising = True
-    for i in range(1,len(i_ref)):
-        if i_ref[i] < i_ref[i-1]:
-            rising = False
-        elif i_ref[i] == 0.0:
-            rising= True
-
-        if rising:
-            i_rising.append(i_ref[i])
-            t_rising.append(tor_cell[i])
-
-    tor_SDO_rising=[i*torque_const + tor_avar[0] for i in i_rising]
-    efficiency = [100*t1/t2 for t1, t2 in zip(t_rising,tor_SDO_rising) if t2 > 0]
-    i_plot = [i for i, t2 in zip(i_rising,tor_SDO_rising) if t2 > 0]
 
     fig, axs = plt.subplots()
     axs.axhline(0, color='black', lw=1.2)
@@ -306,8 +336,8 @@ def process(yaml_file, plot_all=False):
 
     # Save the graph
     fig_name = image_base_path + '4.png'
-    print('Saving graph as: ' + fig_name)
-    plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    # print('Saving graph as: ' + fig_name)
+    # plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
 
     # Save result ------------------------------------------------------------------------------------------
@@ -321,6 +351,23 @@ def process(yaml_file, plot_all=False):
         out_dict['results'] = {}
     out_dict['results']['torque']={}
     out_dict['results']['torque']['Torsion_bar_stiff'] = float(Torsion_bar_stiff)
+    out_dict['results']['torque']['Torsion_bar_stiff_NRMSE'] =float(Torsion_bar_stiff_NRMSE)
+
+    out_dict['results']['torque']['motor_torque_contstant']={}
+    out_dict['results']['torque']['motor_torque_contstant']['SDO_init'] = {}
+    out_dict['results']['torque']['motor_torque_contstant']['SDO_init']['a'] = float(torque_const)
+    out_dict['results']['torque']['motor_torque_contstant']['SDO_init']['b'] = float(tor_avar[0])
+    out_dict['results']['torque']['motor_torque_contstant']['SDO_init']['NRMSE'] = float(NRMSE[0])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_linear'] = {}
+    out_dict['results']['torque']['motor_torque_contstant']['ord_linear']['a'] = float(odr_out.beta[0])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_linear']['b'] = float(odr_out.beta[1])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_linear']['NRMSE'] = float(NRMSE[1])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2'] = {}
+    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['a'] = float(odr_out2.beta[0])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['b'] = float(odr_out2.beta[1])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['c'] = float(odr_out2.beta[2])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['NRMSE'] = float(NRMSE[2])
+
     with open(yaml_name, 'w', encoding='utf8') as outfile:
         yaml.dump(out_dict, outfile, default_flow_style=False, allow_unicode=True)
     return yaml_name
