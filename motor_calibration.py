@@ -29,7 +29,7 @@ cmd1b = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/
 # path to ripple-calib to test test ripple and positionl offset
 cmd2 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/torque-calib/torque-calib')
 # path to set-phase to set the optimized value to the motor
-cmd2b = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/set-phase/set-phase')
+cmd2b = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/set-torque/set-torque')
 # path to ripple-calib to test test ripple and positionl offset
 cmd3 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/ripple-calib/ripple-calib')
 # path to friction-calib for friction identification
@@ -85,11 +85,11 @@ print(plot_utils.bcolors.OKBLUE + "[i] Ended torque-calib successfully" + plot_u
 print(plot_utils.bcolors.OKBLUE + "[i] Processing torque data" + plot_utils.bcolors.ENDC)
 config_file = process_torque.process(yaml_file=config_file, plot_all=False)
 
-# TODO: Upload to motor the updated torsion bar stiffness and torque constant
-# print(plot_utils.bcolors.OKBLUE + "[i] Sending torsion bar stiffness and torque constant to motor using set-torque" +  plot_utils.bcolors.ENDC)
-# if os.system(cmd2b + ' ' + config_file):
-#     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-torque' + plot_utils.bcolors.ENDC)
-# print(plot_utils.bcolors.OKBLUE + "[i] Ended set-torque successfully" + plot_utils.bcolors.ENDC)
+# Upload to motor the updated torsion bar stiffness (and torque constant?)
+print(plot_utils.bcolors.OKBLUE + "[i] Sending torsion bar stiffness to motor using set-torque" +  plot_utils.bcolors.ENDC)
+if os.system(cmd2b + ' ' + config_file):
+    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-torque' + plot_utils.bcolors.ENDC)
+print(plot_utils.bcolors.OKBLUE + "[i] Ended set-torque successfully" + plot_utils.bcolors.ENDC)
 
 ## test ripple and position dependant torque
 # prompt user to disconnect loadcell before continuing
