@@ -349,6 +349,39 @@ def process(yaml_file='NULL'):
               x = effective_page_width  * 0.11,
               y = effective_page_heigth / 2 )
 
+    #####################################################################################################
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', size=14)
+    pdf.cell(200, 10, txt="Torque sensor calibration", ln=1)
+    pdf.set_font("Arial", '', size=13)
+
+    txt_description= f"For this test the motor is connected to a loadcell usign arm long {out_dict['calib_torque']['arm_length']}. "\
+    + f"In current control, the current is inceased until the motor provides the rated torque({out_dict['calib_torque']['rated_tor']}Nm) or the rated current({out_dict['calib_torque']['rated_cur']}A). " \
+    + f"This is done in {out_dict['calib_torque']['number_of_steps']} steps alternating {out_dict['calib_torque']['transition_duration']}ms of raising current to {out_dict['calib_torque']['log_duration']}ms of stationary levels of the current. " \
+    + (f"The procedure is repeated {out_dict['calib_torque']['number_of_iters']} times." if out_dict['calib_torque']['number_of_steps'] > 1 else "")
+
+    pdf.multi_cell( w=effective_page_width,
+                    h=7,
+                    txt=txt_description
+                  )
+    # pdf.ln(th)
+    # out_dict['result']['torque']['Torsion_bar_stiff']
+    txt_description= "The motor torque sensor diasplacement can be found as motor torque divide by the Torsion_bar_stiff (from SDO). "\
+                   + "This can be plot against the loadcell torque reading, and using orthogonal distance regression (only stationary points are used), we estimate a new Torsion_bar_stiff.\n"\
+                   +'For this motor :\n   Torsion_bar_stiff = {:.2f}'.format(out_dict['results']['torque']['Torsion_bar_stiff'])
+    pdf.multi_cell( w=effective_page_width/3, h=th, txt=txt_description)
+    pdf.ln(3*th)
+    txt_description= f"For this test the motor is connected to a loadcell usign arm long {out_dict['calib_torque']['arm_length']}. "
+    pdf.multi_cell(w=effective_page_width/3, h=th, txt=txt_description, border=0, align="L")
+
+    pdf.image(name=image_base_path + '_torque-calib2.png',
+              w=effective_page_width * 2 / 3,
+              x=effective_page_width * 0.4,
+              y=effective_page_heigth * 1 / 3 - 7)
+    pdf.image(name=image_base_path + '_torque-calib3.png',
+              w=effective_page_width * 2 / 3,
+              x=effective_page_width * 0.4,
+              y=effective_page_heigth * 2 / 3)
 
     #####################################################################################################
     pdf.add_page()
@@ -360,8 +393,7 @@ def process(yaml_file='NULL'):
     if 'num_of_sinusoids' in yaml_dict['ripple']:
         num_of_sinusoids = yaml_dict['ripple']['num_of_sinusoids']
         txt_description= "For this test the motor is free to move. In current control, the motor is moved between a min and a max angle ({min_p:.2f} and {max_p:.2f} rad respectively) with a fixed step ({step_p:.2f} rad). After each motion, the motor stops and records {n_wait} torque readings. A full swipe of the search range is repeated {n_repeat} times. Data is accumulated, and for each angle the mean is computed. Finally, multiple sine waves are fit to approximate the ripple data.\n\nThe torque offset is: {offset_t:.5f} Nm\n\nThe torque ripple can be best approximated by " + \
-            ('a sum of ' + str(num_of_sinusoids) + ' sinusoids' if num_of_sinusoids > 1 else 'a single sinusoid') + \
-            ':'
+            ('a sum of ' + str(num_of_sinusoids) + ' sinusoids' if num_of_sinusoids > 1 else 'a single sinusoid') + ':'
 
         pdf.multi_cell( w=effective_page_width,
                         h=7,
