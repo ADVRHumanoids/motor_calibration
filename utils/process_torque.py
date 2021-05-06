@@ -187,7 +187,26 @@ def process(yaml_file, plot_all=False):
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
-    # Plot currentvs loadcell torque oveer the all experiment --------------------------------------------------------------------------------------------
+    # Save result ------------------------------------------------------------------------------------------
+    if 'name' in out_dict['log']:
+        yaml_name = yaml_file
+    else:
+        out_dict['log']['name'] = log_file[:-16]
+        yaml_name =  log_file[:-16] + '-results.yaml'
+        out_dict['results'] = {}
+    out_dict['results']['torque']={}
+    out_dict['results']['torque']['Torsion_bar_stiff'] = {}
+    out_dict['results']['torque']['Torsion_bar_stiff']['SDO_init'] = {}
+    out_dict['results']['torque']['Torsion_bar_stiff']['SDO_init']['Value'] = float(RESULT[0])
+    out_dict['results']['torque']['Torsion_bar_stiff']['SDO_init']['NRMSE'] = float(NRMSE[0])
+
+    out_dict['results']['torque']['Torsion_bar_stiff']['ord_linear'] ={}
+    out_dict['results']['torque']['Torsion_bar_stiff']['ord_linear']['Value'] = float(RESULT[2])
+    out_dict['results']['torque']['Torsion_bar_stiff']['ord_linear']['NRMSE'] = float(NRMSE[2])
+
+
+
+    # Plot current vs loadcell torque over the all experiment --------------------------------------------------------------------------------------------
     i_ref = [i_ref_[v] for v in range(0,len(i_ref_)) if stationary[v]]
     #i_steps = list(dict.fromkeys(i_ref))
 
@@ -269,9 +288,9 @@ def process(yaml_file, plot_all=False):
     #l0, = axs.plot(i_fb_, [i*torque_const for i in i_fb_], color='#8e8e8e', marker='.', markersize=0.5, linestyle='')
     l0, = axs.plot(i_ref_, tor_cell_, color='#8e8e8e', marker='.', markersize=0.5, linestyle='')
     l1, = axs.plot(i_ref, tor_cell, color='#000000', marker='.', markersize=0.5, linestyle='')
-    l2, = axs.plot(i_steps, tor_SDO, color='#ff7f0e', marker='.', markersize=3.0, linestyle='-', alpha=0.5)
+    l2, = axs.plot(i_steps, tor_SDO, color='#1f77b4', marker='.', markersize=3.0, linestyle='-', alpha=0.5)
     for i,t in zip(i_steps, tor_SDO):
-        axs.plot([i, i], [t*0.9, t*1.1], color='#ff7f0e', alpha=0.2, marker='', linestyle='-')
+        axs.plot([i, i], [t*0.9, t*1.1], color='#1f77b4', alpha=0.2, marker='', linestyle='-')
     #axs.fill_between(i_ref, [t*0.9 for t in tor_SDO], [t*1.1 for t in tor_SDO], color='#ff7f0e', alpha=0.2, interpolate=True)
     # axs.plot(i_steps, tor_avar, color='#1f77b4', marker='', linestyle='--', alpha=0.5)
 
@@ -284,7 +303,7 @@ def process(yaml_file, plot_all=False):
     # l4, = axs.plot(i_steps, tor_odr, color='#2ca02c', linestyle='--', linewidth=1, alpha=0.5)
     l3, = axs.plot(i_rising, t_rising, color='#ff0000', marker='.', markersize=0.5, linestyle='')
     l3b,= axs.plot(i_steps, tor_avar, color='#005794', marker='.', markersize=3.0, linestyle='')
-    l4, = axs.plot(i_steps, [linear_func(odr_out.beta,x) for x in i_steps], color='#1f77b4', marker='.', markersize=3.0, linestyle='-', alpha=0.5)
+    l4, = axs.plot(i_steps, [linear_func(odr_out.beta,x) for x in i_steps], color='#ff7f0e', marker='.', markersize=3.0, linestyle='-', alpha=0.5)
     l5, = axs.plot(i_steps, [poly2_func(odr_out2.beta,x) for x in i_steps], color='#2ca02c', marker='.', markersize=3.0, linestyle='-', alpha=0.5)
     # axs.legend(handles=(l0, l1, l2, l3), labels=('full test datapoints', 't_log datapoints', 'expected (10% tollerance)', 'test avarage'))
     # axs.legend(handles=(l0, l1, l3, l2, l4), labels=('full test datapoints', 't_log datapoints', 'avarage', 'SDO','scipy.odr'))
@@ -309,6 +328,24 @@ def process(yaml_file, plot_all=False):
     fig_name = image_base_path + '3.png'
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+
+    # Save result ------------------------------------------------------------------------------------------
+
+    out_dict['results']['torque']['motor_torque_contstant']={}
+    out_dict['results']['torque']['motor_torque_contstant']['SDO_init'] = {}
+    out_dict['results']['torque']['motor_torque_contstant']['SDO_init']['a'] = float(torque_const)
+    out_dict['results']['torque']['motor_torque_contstant']['SDO_init']['b'] = float(tor_avar[0])
+    out_dict['results']['torque']['motor_torque_contstant']['SDO_init']['NRMSE'] = float(NRMSE[0])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_linear'] = {}
+    out_dict['results']['torque']['motor_torque_contstant']['ord_linear']['a'] = float(odr_out.beta[0])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_linear']['b'] = float(odr_out.beta[1])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_linear']['NRMSE'] = float(NRMSE[1])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2'] = {}
+    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['a'] = float(odr_out2.beta[0])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['b'] = float(odr_out2.beta[1])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['c'] = float(odr_out2.beta[2])
+    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['NRMSE'] = float(NRMSE[2])
+
 
     #-----------------------------------------------------------------------------------
 
@@ -340,34 +377,7 @@ def process(yaml_file, plot_all=False):
     # plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
 
-    # Save result ------------------------------------------------------------------------------------------
-    if 'name' in out_dict['log']:
-        yaml_name = yaml_file
-        print('Adding result to: ' + yaml_name)
-    else:
-        out_dict['log']['name'] = log_file[:-16]
-        yaml_name =  log_file[:-16] + '-results.yaml'
-        print('Saving yaml as: ' + yaml_name)
-        out_dict['results'] = {}
-    out_dict['results']['torque']={}
-    out_dict['results']['torque']['Torsion_bar_stiff'] = float(Torsion_bar_stiff)
-    out_dict['results']['torque']['Torsion_bar_stiff_NRMSE'] =float(Torsion_bar_stiff_NRMSE)
-
-    out_dict['results']['torque']['motor_torque_contstant']={}
-    out_dict['results']['torque']['motor_torque_contstant']['SDO_init'] = {}
-    out_dict['results']['torque']['motor_torque_contstant']['SDO_init']['a'] = float(torque_const)
-    out_dict['results']['torque']['motor_torque_contstant']['SDO_init']['b'] = float(tor_avar[0])
-    out_dict['results']['torque']['motor_torque_contstant']['SDO_init']['NRMSE'] = float(NRMSE[0])
-    out_dict['results']['torque']['motor_torque_contstant']['ord_linear'] = {}
-    out_dict['results']['torque']['motor_torque_contstant']['ord_linear']['a'] = float(odr_out.beta[0])
-    out_dict['results']['torque']['motor_torque_contstant']['ord_linear']['b'] = float(odr_out.beta[1])
-    out_dict['results']['torque']['motor_torque_contstant']['ord_linear']['NRMSE'] = float(NRMSE[1])
-    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2'] = {}
-    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['a'] = float(odr_out2.beta[0])
-    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['b'] = float(odr_out2.beta[1])
-    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['c'] = float(odr_out2.beta[2])
-    out_dict['results']['torque']['motor_torque_contstant']['ord_poly2']['NRMSE'] = float(NRMSE[2])
-
+    print('Saving results to: ' + yaml_name)
     with open(yaml_name, 'w', encoding='utf8') as outfile:
         yaml.dump(out_dict, outfile, default_flow_style=False, allow_unicode=True)
     return yaml_name
