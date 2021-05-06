@@ -383,10 +383,10 @@ def process(yaml_file, plot_all=False):
     return yaml_name
 
 if __name__ == "__main__":
-    #yaml_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
-    yaml_file = '/logs/AOR01-EOR01-H6236-20210421112049-results.yaml'
+    plot_utils.print_alberobotics()
+
 
     print(plot_utils.bcolors.OKBLUE + "[i] Starting process_torque" + plot_utils.bcolors.ENDC)
-    yaml_file = process(yaml_file=yaml_file, plot_all=False)
+    yaml_file = process(yaml_file=sys.argv[1], plot_all=False)
 
     print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)
