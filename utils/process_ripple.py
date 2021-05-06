@@ -49,7 +49,7 @@ def process(yaml_file, plot_all=False):
             os.makedirs(new_head)
         except OSError:
             print("Creation of the directory %s failed" % new_head)
-    image_base_path= new_head +f'{code_string}_riple-calib'
+    image_base_path= new_head +f'{code_string}_ripple-calib'
 
 
     if 'calib_ripple' in out_dict:
