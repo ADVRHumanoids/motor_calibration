@@ -40,7 +40,7 @@ def process(yaml_file,
             min_const_vel=-np.inf,
             max_const_vel=np.inf,
             const_vel_lowpass_cutoff=None,
-            run_simulation=False,
+            run_simulation=True,
             save_cvs=False,
             plot_all=False):
 
