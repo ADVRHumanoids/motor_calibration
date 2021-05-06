@@ -2,7 +2,6 @@
 
 import os
 import sys
-import glob
 import yaml
 import numpy as np
 from fpdf import FPDF
@@ -42,38 +41,55 @@ class PDF(FPDF):
         self.cell(w=0, h=10, txt='Page ' + str(self.page_no()), border=0, ln=0, align='C')
 
 def process(yaml_file='NULL'):
+
     # load results
     if yaml_file == 'NULL':
-        list_of_files = glob.glob('/logs/*.yaml')
-        yaml_file = max(list_of_files, key=os.path.getctime)
-        image_base_path = yaml_file[:-len("-results.yaml")]
-    else:
-        head, tail = os.path.split(yaml_file[:-len("-results.yaml")])
-        image_base_path = head + '/images/' + tail
+        raise Exception('missing required yaml file')
 
     print('[i] Generating report from: ' + yaml_file)
-    with open(yaml_file, 'r') as stream:
-        out_dict = yaml.safe_load(stream)
+    with open(yaml_file) as f:
+        try:
+            out_dict = yaml.safe_load(f)
+        except Exception:
+            raise Exception('error in yaml parsing')
+
+
+    if 'results' in out_dict:
         yaml_dict = out_dict['results']
+    else:
+            raise Exception("missing 'results' field in yaml file")
+
+    # find logs
+    head, tail =os.path.split(yaml_file)
 
     if 'location' in out_dict['log']:
-        len_loc = len(out_dict['log']['location'])
+        head = out_dict['log']['location']
     else:
-        len_loc = len('/logs/')
+        head, _ =os.path.split(yaml_file)
+
     if 'name' in out_dict['log']:
-        motor_name = out_dict['log']['name']
+        code_string = out_dict['log']['name']
+    else:
+        _, tail =os.path.split(yaml_file)
+        code_string = tail[:-len("-results.yaml")]
+
+    # set path to save graphs
+    if len(head)>6 and head[-6:]=='/logs/':
+        image_base_path = f'{head[:-6]}/images/{code_string}'
+    else:
+        image_base_path = f'{head}/images/{code_string}'
 
     title_txt = "Calibration Results"
     #pdf.set_title_txt = title_txt
 
     ## add substitle
-    motor_id = yaml_file[len_loc:len_loc + 17]
-    time=yaml_file[len_loc+18:len_loc+22] + '/' + \
-         yaml_file[len_loc+22:len_loc+24] + '/' + \
-         yaml_file[len_loc+24:len_loc+26] + ' - ' + \
-         yaml_file[len_loc+26:len_loc+28] + ':' + \
-         yaml_file[len_loc+28:len_loc+30] + ':' + \
-         yaml_file[len_loc + 30 : len_loc + 32]
+    motor_id = code_string[0:17]
+    time = code_string[-20:-16] + '/' \
+         + code_string[-15:-13] + '/' \
+         + code_string[-12:-10] + ' - ' \
+         + code_string[-8:-6] + ':' \
+         + code_string[-5:-3] + ':' \
+         + code_string[-2:]
     subtitle_txt = 'Actuator: ' + motor_id
 
     ## load phase data
@@ -109,8 +125,8 @@ def process(yaml_file='NULL'):
         pdf.cell(effective_page_width * 0.32, th, 'Orange', border=0)
     elif motor_id[1:3] == 'PO':
         pdf.cell(effective_page_width * 0.32, th, 'Pomegranade', border=0)
-    elif "motor_name" in locals():
-        pdf.cell(effective_page_width * 0.32, th, motor_name[:-2], border=0)
+    #elif "motor_name" in locals():
+    #    pdf.cell(effective_page_width * 0.32, th, yaml_dict['log']['name'][:-2], border=0)
     else:
         pdf.cell(effective_page_width * 0.32, th, 'Unknown', border=0)
     pdf.ln(th)
@@ -328,11 +344,95 @@ def process(yaml_file='NULL'):
     else:
         pdf.multi_cell(w=effective_page_width, h=5, txt=txt_description.format(steps=25))
 
-    pdf.image(name=image_base_path + '-phase_calib.png',
+    pdf.image(name=image_base_path + '_phase-calib.png',
               h = effective_page_heigth * 0.45,
               x = effective_page_width  * 0.11,
               y = effective_page_heigth / 2 )
 
+    #####################################################################################################
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', size=14)
+    pdf.cell(200, 10, txt="Torque sensor calibration", ln=1)
+    pdf.set_font("Arial", '', size=13)
+
+    txt_description= f"For this test the motor is connected to a loadcell usign arm long {out_dict['calib_torque']['arm_length']}. "\
+    + f"In current control, the current is inceased until the motor provides the rated torque ({out_dict['calib_torque']['rated_tor']}Nm) or the rated current ({out_dict['calib_torque']['rated_cur']}A). " \
+    + f"This is done in {out_dict['calib_torque']['number_of_steps']} steps alternating {out_dict['calib_torque']['transition_duration']}ms of raising current to {out_dict['calib_torque']['log_duration']}ms of stationary levels of the current. " \
+    + (f"The procedure is repeated {out_dict['calib_torque']['number_of_iters']} times." if out_dict['calib_torque']['number_of_steps'] > 1 else "")
+
+    pdf.multi_cell( w=effective_page_width,
+                    h=7,
+                    txt=txt_description
+                  )
+    pdf.ln(th*0.25)
+    txt_description= "The motor torque sensor diasplacement can be found as motor torque divide by the Torsion_bar_stiff (from SDO). " \
+                   + "This can be plot against the loadcell torque reading, and using total least square (only stationary points are used), we estimate a new Torsion_bar_stiff:"
+    pdf.multi_cell( w=effective_page_width/3, h=th, txt=txt_description)
+    pdf.cell(effective_page_width / 9, th,'- SDO init.', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'Value:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:7.2f}'.format(yaml_dict['flash_params']['Torsion_bar_stiff']), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['SDO_init']['NRMSE']), border=0, align="R")
+
+    pdf.ln(th * 1.1)
+    pdf.cell(effective_page_width / 9, th,'- Linear', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'value:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:7.2f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['Value']), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['NRMSE']), border=0, align="R")
+
+    pdf.ln(th * 1.1)
+    txt_description= f"The motor torque constant can be estimated using total least square for both a linear function and a 2nd order polynomial. Here the results:"\
+                   +  "\nmotorTorqueConstant:"
+    pdf.multi_cell(w=effective_page_width/3, h=th, txt=txt_description, border=0, align="L")
+
+    pdf.cell(effective_page_width / 9, th,'- SDO init.', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'Value:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['flash_params']["motorTorqueConstant"]), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['SDO_init']['NRMSE']), border=0, align="R")
+
+    pdf.ln(th * 1.1)
+    pdf.cell(effective_page_width / 9, th,'- Linear', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'value:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_linear']['a'] / yaml_dict['flash_params']["Motor_gear_ratio"]), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_linear']['NRMSE']), border=0, align="R")
+
+    pdf.ln(th * 1.1)
+    pdf.cell(effective_page_width / 9, th,'- Poly2', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'const_a:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['a']), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'const_b:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['b']), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'const_c:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['c']), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['NRMSE']), border=0, align="R")
+
+
+    pdf.image(name=image_base_path + '_torque-calib2.png',
+              w=effective_page_width * 2 / 3,
+              x=effective_page_width * 0.4,
+              y=effective_page_heigth * 1 / 3 - 7)
+    pdf.image(name=image_base_path + '_torque-calib3.png',
+              w=effective_page_width * 2 / 3,
+              x=effective_page_width * 0.4,
+              y=effective_page_heigth * 2 / 3)
 
     #####################################################################################################
     pdf.add_page()
@@ -344,8 +444,7 @@ def process(yaml_file='NULL'):
     if 'num_of_sinusoids' in yaml_dict['ripple']:
         num_of_sinusoids = yaml_dict['ripple']['num_of_sinusoids']
         txt_description= "For this test the motor is free to move. In current control, the motor is moved between a min and a max angle ({min_p:.2f} and {max_p:.2f} rad respectively) with a fixed step ({step_p:.2f} rad). After each motion, the motor stops and records {n_wait} torque readings. A full swipe of the search range is repeated {n_repeat} times. Data is accumulated, and for each angle the mean is computed. Finally, multiple sine waves are fit to approximate the ripple data.\n\nThe torque offset is: {offset_t:.5f} Nm\n\nThe torque ripple can be best approximated by " + \
-            ('a sum of ' + str(num_of_sinusoids) + ' sinusoids' if num_of_sinusoids > 1 else 'a single sinusoid') + \
-            ':'
+            ('a sum of ' + str(num_of_sinusoids) + ' sinusoids' if num_of_sinusoids > 1 else 'a single sinusoid') + ':'
 
         pdf.multi_cell( w=effective_page_width,
                         h=7,
@@ -408,7 +507,7 @@ def process(yaml_file='NULL'):
             pdf.cell(effective_page_width / 12, th, 'phase:', border=0, align="L")
             pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p3']), border=0, align="R")
 
-    pdf.image(name=image_base_path + '-ripple_calib.png',
+    pdf.image(name=image_base_path + '_ripple-calib.png',
               h = effective_page_heigth * 0.45,
               x = 20,
               y = 154)
@@ -466,7 +565,7 @@ def process(yaml_file='NULL'):
     pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['inertia_model_NRMSE']), border=0, align="R")
     pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['inertia_model_RMSE']), border=0, align="R")
     pdf.ln(th * 1.1)
 
@@ -475,7 +574,7 @@ def process(yaml_file='NULL'):
     pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['friction_model_NRMSE']), border=0, align="R")
     pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['friction_model_RMSE']), border=0, align="R")
     pdf.ln(th * 1.1)
 
@@ -484,7 +583,7 @@ def process(yaml_file='NULL'):
     pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['position_model_NRMSE']), border=0, align="R")
     pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['position_model_RMSE']), border=0, align="R")
     pdf.ln(th * 1.1)
 
@@ -493,16 +592,15 @@ def process(yaml_file='NULL'):
     pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_NRMSE']), border=0, align="R")
     pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_RMSE']), border=0, align="R")
 
 
-
-    pdf.image(name=image_base_path + '-friction_calib-torque_vs_w.png',
+    pdf.image(name=image_base_path + '_friction-calib_torque-vs-w.png',
               w=effective_page_width * 2 / 3,
               x=effective_page_width * 0.4,
               y=effective_page_heigth * 1 / 3 - 7)
-    pdf.image(name=image_base_path + '-friction_calib-simulation.png',
+    pdf.image(name=image_base_path + '_friction-calib_simulation.png',
               w=effective_page_width * 2 / 3,
               x=effective_page_width * 0.4,
               y=effective_page_heigth * 2 / 3 - 5)
@@ -514,10 +612,10 @@ def process(yaml_file='NULL'):
     pdf.set_author('m-tartari')
 
     # save the pdf with name .pdf
-    pdf_file = yaml_file[:-13] + '-report.pdf'
+    pdf_file = yaml_file[:-13] + '_report.pdf'
     print('[i] Report saved as: ' + pdf_file)
     pdf.output(pdf_file, 'F')
 
 
 if __name__ == "__main__":
-    process()
+    process(sys.argv[1])

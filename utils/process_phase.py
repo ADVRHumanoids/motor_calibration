@@ -18,9 +18,42 @@ def process(yaml_file, plot_all=False):
 
     # read parameters from yaml file
     print('[i] Using yaml_file: ' + yaml_file)
-    with open(yaml_file, 'r') as stream:
-        out_dict = yaml.safe_load(stream)
+    with open(yaml_file) as f:
+        try:
+            out_dict = yaml.safe_load(f)
+        except Exception:
+            raise Exception('error in yaml parsing')
+
+    # find logs
+    if 'location' in out_dict['log']:
+        head = out_dict['log']['location']
+    else:
+        head, _ =os.path.split(yaml_file)
+
+    if 'name' in out_dict['log']:
+        code_string = out_dict['log']['name']
+    else:
+        _, tail =os.path.split(yaml_file)
+        code_string = tail[:-len("-results.yaml")]
+
+    # set path to save graphs
+    if len(head)>6 and head[-6:]=='/logs/':
+        new_head = f'{head[:-6]}/images/'
+    else:
+        new_head = f'{head}/images/'
+
+    if os.path.isdir(new_head) is False:
+        try:
+            os.makedirs(new_head)
+        except OSError:
+            print("Creation of the directory %s failed" % new_head)
+    image_base_path= new_head +f'{code_string}_phase-calib'
+
+    # load params
+    if 'calib_phase' in out_dict:
         yaml_dict = out_dict['calib_phase']
+    else:
+        raise Exception("missing 'calib_phase' in yaml parsing")
     if 'iq_max_repeat_iter' in yaml_dict:
         repeat = yaml_dict['iq_max_repeat_iter']
     if 'iq_number_of_steps' in yaml_dict:
@@ -28,26 +61,23 @@ def process(yaml_file, plot_all=False):
     if 'id_number_of_steps' in yaml_dict:
         steps_2 = yaml_dict['id_number_of_steps']
 
-    # read data from latest log_file --------------------------------------------------------------
-    # list_of_files = glob.glob('/logs/*-phase_calib.log')
-    # log_file = max(list_of_files, key=os.path.getctime)
-    log_file=yaml_file[:-len('-results.yaml')]+'-phase_calib.log'
+    log_file=head+f'{code_string}_phase-calib.log'
     print('[i] Reading log_file: ' + log_file)
 
-    print('[i] Post-processing ph_angle data')
-    # '%u64\t%u\t%u\t%u\t%u\t%f\t%f\t%d\t%f\t%f\t%f'
-    ns = [np.uint64(x.split('\t')[0]) for x in open(log_file).readlines()]
-    curr_type = [np.uint32(x.split('\t')[1]) for x in open(log_file).readlines()]
-    loop_cnt = [np.uint32(x.split('\t')[2]) for x in open(log_file).readlines()]
-    step_cnt = [np.uint32(x.split('\t')[3]) for x in open(log_file).readlines()]
-    trj_cnt = [np.uint32(x.split('\t')[4]) for x in open(log_file).readlines()]
-    ph_angle = [float(x.split('\t')[5]) for x in open(log_file).readlines()]
-    i_q = [float(x.split('\t')[6]) for x in open(log_file).readlines()]
-    motor_vel = [np.int16(x.split('\t')[7]) for x in open(log_file).readlines()]
-    motor_pos = [float(x.split('\t')[8]) for x in open(log_file).readlines()]
-    link_pos = [float(x.split('\t')[9]) for x in open(log_file).readlines()]
-    aux_var = [float(x.split('\t')[10]) for x in open(log_file).readlines()]
+    # log format: '%u64\t%u\t%u\t%u\t%u\t%f\t%f\t%d\t%f\t%f\t%f'
+    ns        = [np.uint64(x.split('\t')[ 0]) for x in open(log_file).readlines()]
+    curr_type = [np.uint32(x.split('\t')[ 1]) for x in open(log_file).readlines()]
+    loop_cnt  = [np.uint32(x.split('\t')[ 2]) for x in open(log_file).readlines()]
+    step_cnt  = [np.uint32(x.split('\t')[ 3]) for x in open(log_file).readlines()]
+    trj_cnt   = [np.uint32(x.split('\t')[ 4]) for x in open(log_file).readlines()]
+    ph_angle  = [    float(x.split('\t')[ 5]) for x in open(log_file).readlines()]
+    i_q       = [    float(x.split('\t')[ 6]) for x in open(log_file).readlines()]
+    motor_vel = [ np.int16(x.split('\t')[ 7]) for x in open(log_file).readlines()]
+    motor_pos = [    float(x.split('\t')[ 8]) for x in open(log_file).readlines()]
+    link_pos  = [    float(x.split('\t')[ 9]) for x in open(log_file).readlines()]
+    aux_var   = [    float(x.split('\t')[10]) for x in open(log_file).readlines()]
 
+    print('[i] Processing data')
     # find where we start testing id instead of iq
     cc = len(curr_type) - 2
     for i in range(1, len(curr_type)):
@@ -322,14 +352,7 @@ def process(yaml_file, plot_all=False):
           plot_utils.bcolors.ENDC)
 
     # Save the graph
-    head, tail = os.path.split(log_file)
-    new_head = head + '/images/'
-    if os.path.isdir(new_head) is False:
-        try:
-            os.makedirs(new_head)
-        except OSError:
-            print("Creation of the directory %s failed" % new_head)
-    fig_name = new_head + tail[:-4] + '.png'
+    fig_name = image_base_path + '.png'
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
@@ -338,10 +361,14 @@ def process(yaml_file, plot_all=False):
         yaml_name = yaml_file
         print('Adding result to: ' + yaml_name)
     else:
-        out_dict['log']['name'] = log_file[:-16]
-        yaml_name =  log_file[:-16] + '-results.yaml'
+        out_dict['log']['location']= head
+        out_dict['log']['name'] = code_string
+        yaml_name =  head + code_string + '_results.yaml'
         print('Saving yaml as: ' + yaml_name)
+
+    if not('results' in out_dict):
         out_dict['results'] = {}
+
     out_dict['results']['phase']={}
     out_dict['results']['phase']['phase_angle'] = float(fit_angle)
     with open(yaml_name, 'w', encoding='utf8') as outfile:
@@ -349,9 +376,9 @@ def process(yaml_file, plot_all=False):
     return yaml_name
 
 if __name__ == "__main__":
-    yaml_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
+    plot_utils.print_alberobotics()
 
-    print(plot_utils.bcolors.OKBLUE + "[i] Starting process_ripple" + plot_utils.bcolors.ENDC)
-    yaml_file = process(yaml_file=yaml_file, plot_all=False)
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting process_phase" + plot_utils.bcolors.ENDC)
+    yaml_file = process(yaml_file=sys.argv[1], plot_all=False)
 
     print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)

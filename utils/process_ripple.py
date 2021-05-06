@@ -13,38 +13,58 @@ from matplotlib.lines import Line2D
 from utils import plot_utils
 from utils import fit_sine
 
-def process(yaml_file='NULL', plot_all=False):
-    # load results
-    print('[i] Using yaml_file: ' + yaml_file)
-    if yaml_file == 'NULL':
-        list_of_files = glob.glob('/logs/*.yaml')
-        yaml_file = max(list_of_files, key=os.path.getctime)
-
+def process(yaml_file, plot_all=False):
     plt.rcParams['savefig.dpi'] = 300
-    repeat = 3
-    steps_1 = 13
-    steps_2 = 6
 
     # read parameters from yaml file
-    with open(yaml_file, 'r') as stream:
-        out_dict = yaml.safe_load(stream)
+    print('[i] Using yaml_file: ' + yaml_file)
+    with open(yaml_file) as f:
+        try:
+            out_dict = yaml.safe_load(f)
+        except Exception:
+            raise Exception('error in yaml parsing')
+
+    # find logs
+    head, tail =os.path.split(yaml_file)
+
+    if 'location' in out_dict['log']:
+        head = out_dict['log']['location']
+    else:
+        head, _ =os.path.split(yaml_file)
+
+    if 'name' in out_dict['log']:
+        code_string = out_dict['log']['name']
+    else:
+        _, tail =os.path.split(yaml_file)
+        code_string = tail[:-len("-results.yaml")]
+
+    # set path to save graphs
+    if len(head)>6 and head[-6:]=='/logs/':
+        new_head = f'{head[:-6]}/images/'
+    else:
+        new_head = f'{head}/images/'
+
+    if os.path.isdir(new_head) is False:
+        try:
+            os.makedirs(new_head)
+        except OSError:
+            print("Creation of the directory %s failed" % new_head)
+    image_base_path= new_head +f'{code_string}_ripple-calib'
+
+
+    if 'calib_ripple' in out_dict:
         yaml_dict = out_dict['calib_ripple']
+    else:
+        raise Exception("missing 'calib_ripple' in yaml parsing")
+
     if 'trj_error' in yaml_dict:
         trj_error = yaml_dict['trj_error']
     if 'pos_step' in yaml_dict:
         pos_step = yaml_dict['pos_step']
-    if 'name' in yaml_dict:
-        motor_name = yaml_dict['name']
-    else:
-        motor_name = 'Torque offset & ripple'
 
-    # read data from latest log_file --------------------------------------------------------------
-    # list_of_files = glob.glob('/logs/*-ripple_calib.log')
-    # log_file = max(list_of_files, key=os.path.getctime)
-    log_file = yaml_file[:-len('-results.yaml')] + '-ripple_calib.log'
+    log_file=head+f'{code_string}_ripple-calib.log'
     print('[i] Reading log_file: ' + log_file)
 
-    print('[i] Processing data')
     # '%u64\t%u\t%u\t%u\t%u\t%f\t%f\t%d\t%f\t%f\t%f'
     ts = [np.uint64(x.split('\t')[0]) for x in open(log_file).readlines()]
     is_moving  = [np.uint32(x.split('\t')[ 1]) for x in open(log_file).readlines()]
@@ -58,6 +78,7 @@ def process(yaml_file='NULL', plot_all=False):
     vel_link   = [ np.int16(x.split('\t')[ 9]) for x in open(log_file).readlines()]
     aux_var    = [    float(x.split('\t')[10]) for x in open(log_file).readlines()]
 
+    print('[i] Processing data')
     # find where we start testing id instead of iq
     ii = 0
     cc = []
@@ -148,13 +169,12 @@ def process(yaml_file='NULL', plot_all=False):
     tq2 = [tq2[key] for key in key_order]
 
     fig, axs = plt.subplots(2)
-    #fig.suptitle(motor_name)
 
 
 
     #axs[0].plot(ts1, tq1, label='Torque$_{raw}$', color='k', marker='.')
     for t, q in zip(temp11, temp21):
-        axs[0].plot(t, q, label='raw data', color='#5fb7f4')
+        axs[0].plot(t, q, label='raw data', color='#8e8e8e')
     axs[0].plot(ts1, tq1, label='median', color='#1f77b4', marker='.')
     axs[0].set_ylabel('torque (Nm)')
     axs[0].set_xlabel('position (rad)')
@@ -185,7 +205,7 @@ def process(yaml_file='NULL', plot_all=False):
                             useOffset=False)
 
     legend_elements = [
-        Line2D([0], [0], label='Raw torque', color='#5fb7f4'),
+        Line2D([0], [0], label='Raw torque', color='#8e8e8e'),
         Line2D([0], [0], label='Median',     color='#1f77b4', marker='.'),
     ]
     axs[0].legend(handles=legend_elements, loc='best')
@@ -287,21 +307,22 @@ def process(yaml_file='NULL', plot_all=False):
         plt.show()
 
     # Save the graph
-    head, tail = os.path.split(log_file)
-    new_head = head + '/images/'
-    if os.path.isdir(new_head) is False:
-        try:
-            os.makedirs(new_head)
-        except OSError:
-            print("Creation of the directory %s failed" % new_head)
-    fig_name = new_head + tail[:-4] + '.png'
+    fig_name = image_base_path + '.png'
     print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
 
-    # savign results
-    if yaml_file[-12:] != 'results.yaml':
-        yaml_file = log_file[:-16] + 'results.yaml'
-        out_dict['results']={}
+    # Save result
+    if 'name' in out_dict['log']:
+        yaml_name = yaml_file
+        print('Adding result to: ' + yaml_name)
+    else:
+        out_dict['log']['location']= head
+        out_dict['log']['name'] = code_string
+        yaml_name =  head + code_string + '_results.yaml'
+        print('Saving yaml as: ' + yaml_name)
+
+    if not('results' in out_dict):
+        out_dict['results'] = {}
 
     num_of_sinusoids = int(np.argsort(RMSE)[0]) + 1
 
@@ -332,18 +353,14 @@ def process(yaml_file='NULL', plot_all=False):
         out_dict['results']['ripple']['w3'] = float(s3['w3'])
         out_dict['results']['ripple']['p3'] = float(s3['p3'])
 
-    print('Saving results in: ' + yaml_file)
-    with open(yaml_file, 'w', encoding='utf8') as outfile:
+    with open(yaml_name, 'w', encoding='utf8') as outfile:
         yaml.dump(out_dict, outfile, default_flow_style=False, allow_unicode=True)
-
-    return yaml_file
+    return yaml_name
 
 if __name__ == "__main__":
     plot_utils.print_alberobotics()
-    yaml_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
 
-    print(plot_utils.bcolors.OKBLUE + "[i] Starting process_ripple" +
-          plot_utils.bcolors.ENDC)
-    yaml_file = process(yaml_file=yaml_file, plot_all=False)
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting process_ripple" + plot_utils.bcolors.ENDC)
+    yaml_file = process(yaml_file=sys.argv[1], plot_all=False)
 
     print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ending program successfully' + plot_utils.bcolors.ENDC)
