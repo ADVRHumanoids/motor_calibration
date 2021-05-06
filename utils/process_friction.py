@@ -40,7 +40,7 @@ def process(yaml_file,
             min_const_vel=-np.inf,
             max_const_vel=np.inf,
             const_vel_lowpass_cutoff=None,
-            run_simulation=False,
+            run_simulation=True,
             save_cvs=False,
             plot_all=False):
 
@@ -54,12 +54,28 @@ def process(yaml_file,
             raise Exception('error in yaml parsing')
 
     # find logs
-    head, tail = path.split(yaml_file)
-    code_string = tail[:-len("-results.yaml")]
-    const_vel_log_fname = path.join(head, f"{code_string}-friction_calib.log")
-    multisine_log_fname = path.join(head, f"{code_string}-inertia_calib.log")
+    head, tail =os.path.split(yaml_file)
 
-    save_path = f'{head}/images/'
+    if 'location' in motor_yaml['log']:
+        head = motor_yaml['log']['location']
+    else:
+        head, _ =os.path.split(yaml_file)
+
+    if 'name' in motor_yaml['log']:
+        code_string = motor_yaml['log']['name']
+    else:
+        _, tail =os.path.split(yaml_file)
+        code_string = tail[:-len("-results.yaml")]
+
+    # set path to save graphs
+    if len(head)>6 and head[-6:]=='/logs/':
+        save_path = f'{head[:-6]}/images/'
+    else:
+        save_path = f'{head}/images/'
+
+    const_vel_log_fname = path.join(head, f"{code_string}_friction-calib.log")
+    multisine_log_fname = path.join(head, f"{code_string}_inertia-calib.log")
+
 
     # motor parameters
     samp_freq = 1e9 / (motor_yaml['ec_board_ctrl']['sync_cycle_time_ns'])
@@ -189,10 +205,10 @@ def process(yaml_file,
     f, axs = plt.subplots(figsize=figsize, dpi=dpi)
     params = non_lin_friction_model.coulomb_frict.get_param_dict()
     params.update(non_lin_friction_model.viscous_frict.get_param_dict())
-    axs.plot(motor_df['motor_vel'], motor_df['lhs'], '*', markersize=0.5, label='tau_m - tau_l')
+    axs.plot(motor_df['motor_vel'], motor_df['lhs'], '*', color='#8e8e8e', markersize=0.5, label='tau_m - tau_l')
     vel_range = np.arange(min(const_vel_trj.vel), max(const_vel_trj.vel), 1 / const_vel_trj.samp_freq)
     modeled_friction = [friction_model.predict(None, vel, None, None) for vel in vel_range]
-    axs.plot(vel_range, modeled_friction, markersize=0.8, label='model')
+    axs.plot(vel_range, modeled_friction, color='#ff7f0e', markersize=0.8, label='model')
     # axs.plot(vel_full, modeled_friction_full, 'r', label='modeled_friction:\n - gamma_c: {:.3f}\n - gamma_v: {:.3f}\n - dc_minus: {:.3f}\n - dc_plus {:.3f}\n - dv_minus: {:.3f}\n - dv_plus {:.3f}'.format(
     #   non_lin_param_dict["gamma_c"], non_lin_param_dict["gamma_v"], params["dc_minus"], params["dc_plus"], params["dv_minus"], params["dv_plus"]))
     axs.set_xlabel('Velocity (rad/s)'), axs.set_ylabel('Torque (Nm)')
@@ -202,7 +218,7 @@ def process(yaml_file,
     # axs.spines['left'].set_visible(False)
     # axs.title(title)
     axs.legend()
-    fname = f"{code_string}-friction_calib-torque_vs_w{extension}"
+    fname = f"{code_string}_friction-calib_torque-vs-w{extension}"
     f.savefig(fname=os.path.join(save_path, fname), format=extension[1:], bbox_inches='tight')
     print('[i] Saved graph as: ' + str(os.path.join(save_path, fname)))
 
@@ -212,7 +228,7 @@ def process(yaml_file,
     plt.xlabel('time [s]'), plt.ylabel('Torque [Nm]')
     # plt.title(title)
     plt.legend()
-    fname = f"{code_string}-friction_calib-torque_vs_time{extension}"
+    fname = f"{code_string}_friction-calib_torque-vs-time{extension}"
     f.savefig(fname=os.path.join(save_path, fname), format=extension[1:], bbox_inches='tight')
     print('[i] Saved graph as: ' + str(os.path.join(save_path, fname)))
 
@@ -223,7 +239,7 @@ def process(yaml_file,
     plt.xlabel('Torque [Nm]')
     # plt.title(title)
     plt.legend()
-    fname = f"{code_string}-friction_calib-error_hist{extension}"
+    fname = f"{code_string}_friction-calib_error-hist{extension}"
     f.savefig(fname=os.path.join(save_path, fname), format=extension[1:], bbox_inches='tight')
     print('[i] Saved graph as: ' + str(os.path.join(save_path, fname)))
 
@@ -232,7 +248,7 @@ def process(yaml_file,
     plt.xlabel('w [rad/s]'), plt.ylabel('Torque [Nm]')
     # plt.title(title)
     plt.legend()
-    fname = f"{code_string}-friction_calib-error_vs_w{extension}"
+    fname = f"{code_string}_friction-calib_error-vs-w{extension}"
     f.savefig(fname=os.path.join(save_path, fname), format=extension[1:], bbox_inches='tight')
     print('[i] Saved graph as: ' + str(os.path.join(save_path, fname)))
 
@@ -268,7 +284,7 @@ def process(yaml_file,
         axs.spines['right'].set_visible(False)
         # axs.spines['left'].set_visible(False)
         axs.legend()
-        fname = f"{code_string}-friction_calib-simulation{extension}"
+        fname = f"{code_string}_friction-calib_simulation{extension}"
         f.savefig(fname=os.path.join(save_path, fname), format=extension[1:], bbox_inches='tight')
         print('[i] Saved graph as: ' + str(os.path.join(save_path, fname)))
 
