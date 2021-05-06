@@ -174,7 +174,7 @@ def process(yaml_file, plot_all=False):
 
     #axs[0].plot(ts1, tq1, label='Torque$_{raw}$', color='k', marker='.')
     for t, q in zip(temp11, temp21):
-        axs[0].plot(t, q, label='raw data', color='#5fb7f4')
+        axs[0].plot(t, q, label='raw data', color='#8e8e8e')
     axs[0].plot(ts1, tq1, label='median', color='#1f77b4', marker='.')
     axs[0].set_ylabel('torque (Nm)')
     axs[0].set_xlabel('position (rad)')
@@ -205,7 +205,7 @@ def process(yaml_file, plot_all=False):
                             useOffset=False)
 
     legend_elements = [
-        Line2D([0], [0], label='Raw torque', color='#5fb7f4'),
+        Line2D([0], [0], label='Raw torque', color='#8e8e8e'),
         Line2D([0], [0], label='Median',     color='#1f77b4', marker='.'),
     ]
     axs[0].legend(handles=legend_elements, loc='best')

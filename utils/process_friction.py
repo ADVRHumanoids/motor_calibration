@@ -205,10 +205,10 @@ def process(yaml_file,
     f, axs = plt.subplots(figsize=figsize, dpi=dpi)
     params = non_lin_friction_model.coulomb_frict.get_param_dict()
     params.update(non_lin_friction_model.viscous_frict.get_param_dict())
-    axs.plot(motor_df['motor_vel'], motor_df['lhs'], '*', markersize=0.5, label='tau_m - tau_l')
+    axs.plot(motor_df['motor_vel'], motor_df['lhs'], '*', color='#8e8e8e', markersize=0.5, label='tau_m - tau_l')
     vel_range = np.arange(min(const_vel_trj.vel), max(const_vel_trj.vel), 1 / const_vel_trj.samp_freq)
     modeled_friction = [friction_model.predict(None, vel, None, None) for vel in vel_range]
-    axs.plot(vel_range, modeled_friction, markersize=0.8, label='model')
+    axs.plot(vel_range, modeled_friction, color='#ff7f0e', markersize=0.8, label='model')
     # axs.plot(vel_full, modeled_friction_full, 'r', label='modeled_friction:\n - gamma_c: {:.3f}\n - gamma_v: {:.3f}\n - dc_minus: {:.3f}\n - dc_plus {:.3f}\n - dv_minus: {:.3f}\n - dv_plus {:.3f}'.format(
     #   non_lin_param_dict["gamma_c"], non_lin_param_dict["gamma_v"], params["dc_minus"], params["dc_plus"], params["dv_minus"], params["dv_plus"]))
     axs.set_xlabel('Velocity (rad/s)'), axs.set_ylabel('Torque (Nm)')
