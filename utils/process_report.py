@@ -356,7 +356,7 @@ def process(yaml_file='NULL'):
     pdf.set_font("Arial", '', size=13)
 
     txt_description= f"For this test the motor is connected to a loadcell usign arm long {out_dict['calib_torque']['arm_length']}. "\
-    + f"In current control, the current is inceased until the motor provides the rated torque({out_dict['calib_torque']['rated_tor']}Nm) or the rated current({out_dict['calib_torque']['rated_cur']}A). " \
+    + f"In current control, the current is inceased until the motor provides the rated torque ({out_dict['calib_torque']['rated_tor']}Nm) or the rated current ({out_dict['calib_torque']['rated_cur']}A). " \
     + f"This is done in {out_dict['calib_torque']['number_of_steps']} steps alternating {out_dict['calib_torque']['transition_duration']}ms of raising current to {out_dict['calib_torque']['log_duration']}ms of stationary levels of the current. " \
     + (f"The procedure is repeated {out_dict['calib_torque']['number_of_iters']} times." if out_dict['calib_torque']['number_of_steps'] > 1 else "")
 
@@ -364,15 +364,66 @@ def process(yaml_file='NULL'):
                     h=7,
                     txt=txt_description
                   )
-    # pdf.ln(th)
-    # out_dict['result']['torque']['Torsion_bar_stiff']
-    txt_description= "The motor torque sensor diasplacement can be found as motor torque divide by the Torsion_bar_stiff (from SDO). "\
-                   + "This can be plot against the loadcell torque reading, and using orthogonal distance regression (only stationary points are used), we estimate a new Torsion_bar_stiff.\n"\
-                   +'For this motor :\n   Torsion_bar_stiff = {:.2f}'.format(out_dict['results']['torque']['Torsion_bar_stiff'])
+    pdf.ln(th*0.25)
+    txt_description= "The motor torque sensor diasplacement can be found as motor torque divide by the Torsion_bar_stiff (from SDO). " \
+                   + "This can be plot against the loadcell torque reading, and using total least square (only stationary points are used), we estimate a new Torsion_bar_stiff:"
     pdf.multi_cell( w=effective_page_width/3, h=th, txt=txt_description)
-    pdf.ln(3*th)
-    txt_description= f"For this test the motor is connected to a loadcell usign arm long {out_dict['calib_torque']['arm_length']}. "
+    pdf.cell(effective_page_width / 9, th,'- SDO init.', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'Value:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:7.2f}'.format(yaml_dict['flash_params']['Torsion_bar_stiff']), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['SDO_init']['NRMSE']), border=0, align="R")
+
+    pdf.ln(th * 1.1)
+    pdf.cell(effective_page_width / 9, th,'- Linear', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'value:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:7.2f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['Value']), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['NRMSE']), border=0, align="R")
+
+    pdf.ln(th * 1.1)
+    txt_description= f"The motor torque constant can be estimated using total least square for both a linear function and a 2nd order polynomial. Here the results:"\
+                   +  "\nmotorTorqueConstant:"
     pdf.multi_cell(w=effective_page_width/3, h=th, txt=txt_description, border=0, align="L")
+
+    pdf.cell(effective_page_width / 9, th,'- SDO init.', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'Value:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['flash_params']["motorTorqueConstant"]), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['SDO_init']['NRMSE']), border=0, align="R")
+
+    pdf.ln(th * 1.1)
+    pdf.cell(effective_page_width / 9, th,'- Linear', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'value:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_linear']['a'] / yaml_dict['flash_params']["Motor_gear_ratio"]), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_linear']['NRMSE']), border=0, align="R")
+
+    pdf.ln(th * 1.1)
+    pdf.cell(effective_page_width / 9, th,'- Poly2', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'const_a:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['a']), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'const_b:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['b']), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'const_c:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['c']), border=0, align="R")
+    pdf.ln(th * 0.75)
+    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['NRMSE']), border=0, align="R")
+
 
     pdf.image(name=image_base_path + '_torque-calib2.png',
               w=effective_page_width * 2 / 3,
@@ -514,7 +565,7 @@ def process(yaml_file='NULL'):
     pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['inertia_model_NRMSE']), border=0, align="R")
     pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['inertia_model_RMSE']), border=0, align="R")
     pdf.ln(th * 1.1)
 
@@ -523,7 +574,7 @@ def process(yaml_file='NULL'):
     pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['friction_model_NRMSE']), border=0, align="R")
     pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['friction_model_RMSE']), border=0, align="R")
     pdf.ln(th * 1.1)
 
@@ -532,7 +583,7 @@ def process(yaml_file='NULL'):
     pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['position_model_NRMSE']), border=0, align="R")
     pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['position_model_RMSE']), border=0, align="R")
     pdf.ln(th * 1.1)
 
@@ -541,7 +592,7 @@ def process(yaml_file='NULL'):
     pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_NRMSE']), border=0, align="R")
     pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
     pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_RMSE']), border=0, align="R")
 
 
