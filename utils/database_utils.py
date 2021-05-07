@@ -12,20 +12,16 @@ class MotorData:
             yaml_dict = out_dict['results']
 
         if 'time' in out_dict['log']:
-            time = out_dict['log']['time']
-            self.time = f'{time[0:4]}-{time[4:6]}-{time[6:8]} {time[8:10]}:{time[10:12]}:{time[12:]}'
-        elif yaml_file[-12:] == 'results.yaml':
-            time = yaml_file[-27:-13]
-            self.time = f'{time[0:4]}-{time[4:6]}-{time[6:8]} {time[8:10]}:{time[10:12]}:{time[12:]}'
+            self.has_time = True
+            self.time = out_dict['log']['time']
         else:
-            self.time = '1000-01-01 00:00:00'
+            self.has_time = False
 
-        if 'serial_Num_Act' in out_dict['log']:
-            self.serial_Num_Act = out_dict['log']['serial_Num_Act']
-        elif yaml_file[-12:] == 'results.yaml':
-            self.serial_Num_Act = yaml_file[-45:-28]
+        if 'name' in out_dict['log']:
+            self.serial_Num_Act = out_dict['log']['name'][0:17]
         else:
             self.serial_Num_Act = None
+
         # ram_param:
         if 'ram_params' in yaml_dict:
             self.has_ram_param = True
@@ -82,7 +78,12 @@ class MotorData:
             self.has_flash_param = False
 
     def get_params(self):
-        out_dict = {'time' : self.time, 'serial_Num_Act' : self.serial_Num_Act }
+        out_dict = {'serial_Num_Act' : self.serial_Num_Act }
+
+        #time
+        if self.has_time:
+            out_dict.update({'time' : self.time})
+
         # ram_param:
         if self.has_flash_param:
             out_dict.update({
@@ -149,19 +150,15 @@ class TestData:
             out_dict = yaml.safe_load(stream)
             yaml_dict = out_dict['results']
 
+        # TODO: add time to tests
         if 'time' in out_dict['log']:
-            time = out_dict['log']['time']
-            self.time = f'{time[0:4]}-{time[4:6]}-{time[6:8]} {time[8:10]}:{time[10:12]}:{time[12:]}'
-        elif yaml_file[-12:] == 'results.yaml':
-            time = yaml_file[-27:-13]
-            self.time = f'{time[0:4]}-{time[4:6]}-{time[6:8]} {time[8:10]}:{time[10:12]}:{time[12:]}'
+            self.has_time = True
+            self.time = out_dict['log']['time']
         else:
-            self.time = '1000-01-01 00:00:00'
+            self.has_time = False
 
-        if 'serial_Num_Act' in out_dict['log']:
-            self.serial_Num_Act = out_dict['log']['serial_Num_Act']
-        elif yaml_file[-12:] == 'results.yaml':
-            self.serial_Num_Act = yaml_file[-45:-28]
+        if 'name' in out_dict['log']:
+            self.serial_Num_Act = out_dict['log']['name'][0:17]
         else:
             self.serial_Num_Act = None
 
@@ -190,6 +187,33 @@ class TestData:
                 self.ripple_p3 = yaml_dict['ripple']['p3']
         else:
             self.has_ripple = False
+
+        # torque:
+        if 'torque' in yaml_dict:
+            self.has_torque = True
+            if 'Torsion_bar_stiff' in yaml_dict['torque']:
+                self.has_torsionBarStiff = True
+                self.torque_torsionBarStiff_SDOInit = yaml_dict['torque']['Torsion_bar_stiff']['SDO_init']['Value']
+                self.torque_torsionBarStiff_SDOInit_NMRSE = yaml_dict['torque']['Torsion_bar_stiff']['SDO_init']['NRMSE']
+                self.torque_torsionBarStiff_ordLinear = yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['Value']
+                self.torque_torsionBarStiff_ordLinear_NMRSE = yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['NRMSE']
+            else:
+                self.has_torsionBarStiff= False
+
+            if 'motor_torque_contstant' in yaml_dict['torque']:
+                self.motorTorqueContstant = True
+                self.torque_motorTorqueContstant_SDOInit = yaml_dict['torque']['motor_torque_contstant']['SDO_init']['a']
+                self.torque_motorTorqueContstant_SDOInit_NMRSE = yaml_dict['torque']['motor_torque_contstant']['SDO_init']['NRMSE']
+                self.torque_motorTorqueContstant_ordLinear = yaml_dict['torque']['motor_torque_contstant']['ord_linear']['a']
+                self.torque_motorTorqueContstant_ordLinear_NMRSE = yaml_dict['torque']['motor_torque_contstant']['ord_linear']['NRMSE']
+                self.torque_motorTorqueContstant_ordPoly2_a = yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['a']
+                self.torque_motorTorqueContstant_ordPoly2_b = yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['b']
+                self.torque_motorTorqueContstant_ordPoly2_c = yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['c']
+                self.torque_motorTorqueContstant_ordPoly2_NMRSE = yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['NRMSE']
+            else:
+                self.motorTorqueContstant = False
+        else:
+            self.has_torque = False
 
         # friction:
         if 'friction' in yaml_dict:
@@ -240,10 +264,36 @@ class TestData:
             self.has_friction = False
 
     def get_params(self):
-        out_dict = {'time' : self.time, 'serial_Num_Act' : self.serial_Num_Act }
+        out_dict = {'serial_Num_Act' : self.serial_Num_Act }
+
+        #time
+        if self.has_time:
+            out_dict.update({'time' : self.time})
+
         # phase:
         if self.has_phase:
             out_dict.update({'phase_angle' : self.phase_angle})
+
+        # torque:
+        if self.has_torque:
+            if self.has_torsionBarStiff:
+                out_dict.update({
+                    'torque_torsionBarStiff_SDOInit' : self.torque_torsionBarStiff_SDOInit,
+                    'torque_torsionBarStiff_SDOInit_NMRSE' : self.torque_torsionBarStiff_SDOInit_NMRSE,
+                    'torque_torsionBarStiff_ordLinear' : self.torque_torsionBarStiff_ordLinear,
+                    'torque_torsionBarStiff_ordLinear_NMRSE' : self.torque_torsionBarStiff_ordLinear_NMRSE,
+                    })
+            if self.motorTorqueContstant:
+                out_dict.update({
+                    'torque_motorTorqueContstant_SDOInit' : self.torque_motorTorqueContstant_SDOInit,
+                    'torque_motorTorqueContstant_SDOInit_NMRSE' : self.torque_motorTorqueContstant_SDOInit_NMRSE,
+                    'torque_motorTorqueContstant_ordLinear' : self.torque_motorTorqueContstant_ordLinear,
+                    'torque_motorTorqueContstant_ordLinear_NMRSE' : self.torque_motorTorqueContstant_ordLinear_NMRSE,
+                    'torque_motorTorqueContstant_ordPoly2_a' : self.torque_motorTorqueContstant_ordPoly2_a,
+                    'torque_motorTorqueContstant_ordPoly2_b' : self.torque_motorTorqueContstant_ordPoly2_b,
+                    'torque_motorTorqueContstant_ordPoly2_c' : self.torque_motorTorqueContstant_ordPoly2_c,
+                    'torque_motorTorqueContstant_ordPoly2_NMRSE' : self.torque_motorTorqueContstant_ordPoly2_NMRSE,
+                    })
 
         # ripple:
         if self.has_ripple:
@@ -416,12 +466,12 @@ def test_server_connection(credentials_file):
 
 
 if __name__ == "__main__":
-    list_of_files = glob.glob('/logs/*.yaml')
-    #yaml_file = max(list_of_files, key=os.path.getctime)
-    yaml_file = '/logs/ALE01-ELE01-H4236/2020-12-15--17-01-01/ALE01-ELE01-H4236-20201215170101-results.yaml'
-    credentials_file = '/home/tree/ecat_dev/motor_calibration/credentials.yaml'
-    print(f'Results:\t{yaml_file}\nCredentials:\t{credentials_file}\n')
+    import sys
+    yaml_file = sys.argv[1]
+    print(f'\nResults:\t{yaml_file}\n')
 
+    credentials_file = sys.argv[2]
+    print(f'Credentials:\t{credentials_file}')
     test_server_connection(credentials_file)
 
     print('Queries:')
@@ -442,5 +492,5 @@ if __name__ == "__main__":
         for k, v in test.get_params().items():
             v_ = v if isinstance(v, str) else str(v)
             print('\t\t' + k + '\t\t\t' + v_ + '\t\t\t' + str(type(v)))
-    if False:
-        upload_from_yaml(credentials_file=credentials_file, yaml_file=yaml_file)
+
+    upload_from_yaml(credentials_file=credentials_file, yaml_file=yaml_file)
