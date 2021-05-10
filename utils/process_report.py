@@ -331,6 +331,7 @@ def process(yaml_file='NULL'):
         pdf.cell(effective_page_width*0.17, th, str(flash_dict["module_params"]), border=0)
 
 
+    #####################################################################################################
     pdf.add_page()
     pdf.set_font("Arial", 'B', size=14)
     pdf.cell(200, 10, txt="Electrical Phase Angle Calibration", ln=1)
@@ -350,260 +351,263 @@ def process(yaml_file='NULL'):
               y = effective_page_heigth / 2 )
 
     #####################################################################################################
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', size=14)
-    pdf.cell(200, 10, txt="Torque sensor calibration", ln=1)
-    pdf.set_font("Arial", '', size=13)
+    if 'torque' in yaml_dict['torque']:
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', size=14)
+        pdf.cell(200, 10, txt="Torque sensor calibration", ln=1)
+        pdf.set_font("Arial", '', size=13)
 
-    txt_description= f"For this test the motor is connected to a loadcell usign arm long {out_dict['calib_torque']['arm_length']}. "\
-    + f"In current control, the current is inceased until the motor provides the rated torque ({out_dict['calib_torque']['rated_tor']}Nm) or the rated current ({out_dict['calib_torque']['rated_cur']}A). " \
-    + f"This is done in {out_dict['calib_torque']['number_of_steps']} steps alternating {out_dict['calib_torque']['transition_duration']}ms of raising current to {out_dict['calib_torque']['log_duration']}ms of stationary levels of the current. " \
-    + (f"The procedure is repeated {out_dict['calib_torque']['number_of_iters']} times." if out_dict['calib_torque']['number_of_steps'] > 1 else "")
-
-    pdf.multi_cell( w=effective_page_width,
-                    h=7,
-                    txt=txt_description
-                  )
-    pdf.ln(th*0.25)
-    txt_description= "The motor torque sensor diasplacement can be found as motor torque divide by the Torsion_bar_stiff (from SDO). " \
-                   + "This can be plot against the loadcell torque reading, and using total least square (only stationary points are used), we estimate a new Torsion_bar_stiff:"
-    pdf.multi_cell( w=effective_page_width/3, h=th, txt=txt_description)
-    pdf.cell(effective_page_width / 9, th,'- SDO init.', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'Value:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:7.2f}'.format(yaml_dict['flash_params']['Torsion_bar_stiff']), border=0, align="R")
-    pdf.ln(th * 0.75)
-    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['SDO_init']['NRMSE']), border=0, align="R")
-
-    pdf.ln(th * 1.1)
-    pdf.cell(effective_page_width / 9, th,'- Linear', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'value:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:7.2f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['Value']), border=0, align="R")
-    pdf.ln(th * 0.75)
-    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['NRMSE']), border=0, align="R")
-
-    pdf.ln(th * 1.1)
-    txt_description= f"The motor torque constant can be estimated using total least square for both a linear function and a 2nd order polynomial. Here the results:"\
-                   +  "\nmotorTorqueConstant:"
-    pdf.multi_cell(w=effective_page_width/3, h=th, txt=txt_description, border=0, align="L")
-
-    pdf.cell(effective_page_width / 9, th,'- SDO init.', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'Value:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['flash_params']["motorTorqueConstant"]), border=0, align="R")
-    pdf.ln(th * 0.75)
-    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['SDO_init']['NRMSE']), border=0, align="R")
-
-    pdf.ln(th * 1.1)
-    pdf.cell(effective_page_width / 9, th,'- Linear', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'value:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_linear']['a'] / yaml_dict['flash_params']["Motor_gear_ratio"]), border=0, align="R")
-    pdf.ln(th * 0.75)
-    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_linear']['NRMSE']), border=0, align="R")
-
-    pdf.ln(th * 1.1)
-    pdf.cell(effective_page_width / 9, th,'- Poly2', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'const_a:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['a']), border=0, align="R")
-    pdf.ln(th * 0.75)
-    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'const_b:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['b']), border=0, align="R")
-    pdf.ln(th * 0.75)
-    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'const_c:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['c']), border=0, align="R")
-    pdf.ln(th * 0.75)
-    pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
-    pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
-    pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['NRMSE']), border=0, align="R")
-
-
-    pdf.image(name=image_base_path + '_torque-calib2.png',
-              w=effective_page_width * 2 / 3,
-              x=effective_page_width * 0.4,
-              y=effective_page_heigth * 1 / 3 - 7)
-    pdf.image(name=image_base_path + '_torque-calib3.png',
-              w=effective_page_width * 2 / 3,
-              x=effective_page_width * 0.4,
-              y=effective_page_heigth * 2 / 3)
-
-    #####################################################################################################
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', size=14)
-    pdf.cell(200, 10, txt="Ripple and Position-Dependent Torque Offset Calibration", ln=1)
-    pdf.set_font("Arial", '', size=13)
-
-    #load ripple-calib data
-    if 'num_of_sinusoids' in yaml_dict['ripple']:
-        num_of_sinusoids = yaml_dict['ripple']['num_of_sinusoids']
-        txt_description= "For this test the motor is free to move. In current control, the motor is moved between a min and a max angle ({min_p:.2f} and {max_p:.2f} rad respectively) with a fixed step ({step_p:.2f} rad). After each motion, the motor stops and records {n_wait} torque readings. A full swipe of the search range is repeated {n_repeat} times. Data is accumulated, and for each angle the mean is computed. Finally, multiple sine waves are fit to approximate the ripple data.\n\nThe torque offset is: {offset_t:.5f} Nm\n\nThe torque ripple can be best approximated by " + \
-            ('a sum of ' + str(num_of_sinusoids) + ' sinusoids' if num_of_sinusoids > 1 else 'a single sinusoid') + ':'
+        txt_description= f"For this test the motor is connected to a loadcell usign arm long {out_dict['calib_torque']['arm_length']}. "\
+        + f"In current control, the current is inceased until the motor provides the rated torque ({out_dict['calib_torque']['rated_tor']}Nm) or the rated current ({out_dict['calib_torque']['rated_cur']}A). " \
+        + f"This is done in {out_dict['calib_torque']['number_of_steps']} steps alternating {out_dict['calib_torque']['transition_duration']}ms of raising current to {out_dict['calib_torque']['log_duration']}ms of stationary levels of the current. " \
+        + (f"The procedure is repeated {out_dict['calib_torque']['number_of_iters']} times." if out_dict['calib_torque']['number_of_steps'] > 1 else "")
 
         pdf.multi_cell( w=effective_page_width,
                         h=7,
-                        txt=txt_description.format(
-                           min_p=out_dict['calib_ripple']['pos_start'] if 'pos_start' in out_dict['calib_ripple'] else 0,
-                           max_p=out_dict['calib_ripple']['pos_end']   if 'pos_end'   in out_dict['calib_ripple'] else 1.0,
-                           step_p=out_dict['calib_ripple']['pos_step'] if 'pos_step'  in out_dict['calib_ripple'] else 0.1,
-                           n_wait=out_dict['calib_ripple']['log_time'] if 'log_time'  in out_dict['calib_ripple'] else 1000,
-                           n_repeat=out_dict['calib_ripple']['number_of_loops'] if 'number_of_loops' in out_dict['calib_ripple'] else 2,
-                           offset_t=yaml_dict['ripple']['c']
-                        ))
-        #pdf.cell(effective_page_width/3, th, txt_ripple, ln=1, border=0)
-        if num_of_sinusoids == 1:
-            pdf.ln(0)
-            pdf.cell(effective_page_width / 6, th, 'amplitude:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['a1']), border=0, align="R")
-            pdf.ln(th * 0.75)
-            pdf.cell(effective_page_width / 6, th,'ang. vel.:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['w1']), border=0, align="R")
-            pdf.ln(th)
-            pdf.cell(effective_page_width / 6, th, 'phase:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p1']), border=0, align="R")
+                        txt=txt_description
+                    )
+        pdf.ln(th*0.25)
+        txt_description= "The motor torque sensor diasplacement can be found as motor torque divide by the Torsion_bar_stiff (from SDO). " \
+                    + "This can be plot against the loadcell torque reading, and using total least square (only stationary points are used), we estimate a new Torsion_bar_stiff:"
+        pdf.multi_cell( w=effective_page_width/3, h=th, txt=txt_description)
+        pdf.cell(effective_page_width / 9, th,'- SDO init.', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'Value:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:7.2f}'.format(yaml_dict['flash_params']['Torsion_bar_stiff']), border=0, align="R")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['SDO_init']['NRMSE']), border=0, align="R")
 
-        elif num_of_sinusoids > 1:
-            pdf.cell(effective_page_width /12, th,'Sin_1', border=0, align="L")
-            pdf.cell(effective_page_width /12, th, 'amplitude:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['a1']), border=0, align="R")
-            pdf.cell(effective_page_width /12, th,'', border=0, align="L")
-            pdf.cell(effective_page_width /12, th,'Sin_2', border=0, align="L")
-            pdf.cell(effective_page_width /12, th,'amplitude:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['a2']), border=0, align="R")
-            pdf.ln(th * 0.75)
-            pdf.cell(effective_page_width /12, th,'', border=0, align="L")
-            pdf.cell(effective_page_width /12, th,'ang. vel.:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['w1']), border=0, align="R")
-            pdf.cell(effective_page_width /12, th,'', border=0, align="L")
-            pdf.cell(effective_page_width /12, th,'', border=0, align="L")
-            pdf.cell(effective_page_width /12, th,'ang. vel.:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['w2']), border=0, align="R")
-            pdf.ln(th * 0.75)
-            pdf.cell(effective_page_width /12,th,'',border=0,align="L")
-            pdf.cell(effective_page_width /12, th, 'phase:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p1']), border=0, align="R")
-            pdf.cell(effective_page_width /12, th, '', border=0, align="L")
-            pdf.cell(effective_page_width /12, th,'',border=0,align="L")
-            pdf.cell(effective_page_width /12, th, 'phase:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p2']), border=0, align="R")
+        pdf.ln(th * 1.1)
+        pdf.cell(effective_page_width / 9, th,'- Linear', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'value:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:7.2f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['Value']), border=0, align="R")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['NRMSE']), border=0, align="R")
 
-        if num_of_sinusoids > 2:
-            pdf.ln(th * 1.1)
-            pdf.cell(effective_page_width /12, th,'Sin_3', border=0, align="L")
-            pdf.cell(effective_page_width /12, th,'amplitude', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['a3']), border=0, align="R")
-            pdf.ln(th * 0.75)
-            pdf.cell(effective_page_width /12, th,'', border=0, align="L")
-            pdf.cell(effective_page_width /12, th,'ang. vel.', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['w3']), border=0, align="R")
-            pdf.ln(th * 0.75)
-            pdf.cell(effective_page_width / 12,th,'',border=0,align="L")
-            pdf.cell(effective_page_width / 12, th, 'phase:', border=0, align="L")
-            pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p3']), border=0, align="R")
+        pdf.ln(th * 1.1)
+        txt_description= f"The motor torque constant can be estimated using total least square for both a linear function and a 2nd order polynomial. Here the results:"\
+                    +  "\nmotorTorqueConstant:"
+        pdf.multi_cell(w=effective_page_width/3, h=th, txt=txt_description, border=0, align="L")
 
-    pdf.image(name=image_base_path + '_ripple-calib.png',
-              h = effective_page_heigth * 0.45,
-              x = 20,
-              y = 154)
+        pdf.cell(effective_page_width / 9, th,'- SDO init.', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'Value:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['flash_params']["motorTorqueConstant"]), border=0, align="R")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['SDO_init']['NRMSE']), border=0, align="R")
+
+        pdf.ln(th * 1.1)
+        pdf.cell(effective_page_width / 9, th,'- Linear', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'value:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_linear']['a'] / yaml_dict['flash_params']["Motor_gear_ratio"]), border=0, align="R")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_linear']['NRMSE']), border=0, align="R")
+
+        pdf.ln(th * 1.1)
+        pdf.cell(effective_page_width / 9, th,'- Poly2', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'const_a:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['a']), border=0, align="R")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'const_b:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['b']), border=0, align="R")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'const_c:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['c']), border=0, align="R")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width / 9, th,'', border=0, align="L")
+        pdf.cell(effective_page_width / 9, th,'NMRSE:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['torque']['motor_torque_contstant']['ord_poly2']['NRMSE']), border=0, align="R")
+
+
+        pdf.image(name=image_base_path + '_torque-calib2.png',
+                w=effective_page_width * 2 / 3,
+                x=effective_page_width * 0.4,
+                y=effective_page_heigth * 1 / 3 - 7)
+        pdf.image(name=image_base_path + '_torque-calib3.png',
+                w=effective_page_width * 2 / 3,
+                x=effective_page_width * 0.4,
+                y=effective_page_heigth * 2 / 3)
 
     #####################################################################################################
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', size=14)
-    pdf.cell(200, 10, txt='Inertia and Friction Identification', ln=1)
-    pdf.set_font("Arial", '', size=13)
+    if 'ripple' in yaml_dict:
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', size=14)
+        pdf.cell(200, 10, txt="Ripple and Position-Dependent Torque Offset Calibration", ln=1)
+        pdf.set_font("Arial", '', size=13)
 
-    txt_description = 'For this test the motor is free to move. In velocity control {num_s} swipes were performed at different constant velocities. Then, in position control, a periodic reference trajectory, composed of multiple sinusoids was sent to the motor. Using linear regression a model is interpolated to match the data recorded.'
-    num_s = 2 * len(out_dict['calib_friction']['steps'])
-    pdf.multi_cell(w=effective_page_width,
-                   h=7,
-                   txt=txt_description.format(num_s=num_s))
+        #load ripple-calib data
+        if 'num_of_sinusoids' in yaml_dict['ripple']:
+            num_of_sinusoids = yaml_dict['ripple']['num_of_sinusoids']
+            txt_description= "For this test the motor is free to move. In current control, the motor is moved between a min and a max angle ({min_p:.2f} and {max_p:.2f} rad respectively) with a fixed step ({step_p:.2f} rad). After each motion, the motor stops and records {n_wait} torque readings. A full swipe of the search range is repeated {n_repeat} times. Data is accumulated, and for each angle the mean is computed. Finally, multiple sine waves are fit to approximate the ripple data.\n\nThe torque offset is: {offset_t:.5f} Nm\n\nThe torque ripple can be best approximated by " + \
+                ('a sum of ' + str(num_of_sinusoids) + ' sinusoids' if num_of_sinusoids > 1 else 'a single sinusoid') + ':'
 
-    pdf.ln(th * 0.5)
-    pdf.multi_cell( w=effective_page_width/3, h=5,
-        txt='The model obtained has the following parameters:')
-    pdf.ln(1)
-    pdf.cell(effective_page_width / 6, th, '- Motor Inertia:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['motor_inertia']), border=0, align="R")
+            pdf.multi_cell( w=effective_page_width,
+                            h=7,
+                            txt=txt_description.format(
+                            min_p=out_dict['calib_ripple']['pos_start'] if 'pos_start' in out_dict['calib_ripple'] else 0,
+                            max_p=out_dict['calib_ripple']['pos_end']   if 'pos_end'   in out_dict['calib_ripple'] else 1.0,
+                            step_p=out_dict['calib_ripple']['pos_step'] if 'pos_step'  in out_dict['calib_ripple'] else 0.1,
+                            n_wait=out_dict['calib_ripple']['log_time'] if 'log_time'  in out_dict['calib_ripple'] else 1000,
+                            n_repeat=out_dict['calib_ripple']['number_of_loops'] if 'number_of_loops' in out_dict['calib_ripple'] else 2,
+                            offset_t=yaml_dict['ripple']['c']
+                            ))
+            #pdf.cell(effective_page_width/3, th, txt_ripple, ln=1, border=0)
+            if num_of_sinusoids == 1:
+                pdf.ln(0)
+                pdf.cell(effective_page_width / 6, th, 'amplitude:', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['a1']), border=0, align="R")
+                pdf.ln(th * 0.75)
+                pdf.cell(effective_page_width / 6, th,'ang. vel.:', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['w1']), border=0, align="R")
+                pdf.ln(th)
+                pdf.cell(effective_page_width / 6, th, 'phase:', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p1']), border=0, align="R")
 
-    pdf.ln(th * 1.1)
-    pdf.cell(effective_page_width / 3, th, '- Asymmetric Viscous Friction:', border=0, align="L")
-    pdf.ln(th * 0.7)
-    pdf.cell(effective_page_width / 6, th, '     gamma:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['viscous_friction']['gamma']), border=0, align="R")
-    pdf.ln(th * 0.7)
-    pdf.cell(effective_page_width / 6, th, '     dv_minus:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['viscous_friction']['dv_minus']), border=0, align="R")
-    pdf.ln(th * 0.7)
-    pdf.cell(effective_page_width / 6, th, '     dv_plus:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['viscous_friction']['dv_plus']), border=0, align="R")
+            elif num_of_sinusoids > 1:
+                pdf.cell(effective_page_width /12, th,'Sin_1', border=0, align="L")
+                pdf.cell(effective_page_width /12, th, 'amplitude:', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['a1']), border=0, align="R")
+                pdf.cell(effective_page_width /12, th,'', border=0, align="L")
+                pdf.cell(effective_page_width /12, th,'Sin_2', border=0, align="L")
+                pdf.cell(effective_page_width /12, th,'amplitude:', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['a2']), border=0, align="R")
+                pdf.ln(th * 0.75)
+                pdf.cell(effective_page_width /12, th,'', border=0, align="L")
+                pdf.cell(effective_page_width /12, th,'ang. vel.:', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['w1']), border=0, align="R")
+                pdf.cell(effective_page_width /12, th,'', border=0, align="L")
+                pdf.cell(effective_page_width /12, th,'', border=0, align="L")
+                pdf.cell(effective_page_width /12, th,'ang. vel.:', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['w2']), border=0, align="R")
+                pdf.ln(th * 0.75)
+                pdf.cell(effective_page_width /12,th,'',border=0,align="L")
+                pdf.cell(effective_page_width /12, th, 'phase:', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p1']), border=0, align="R")
+                pdf.cell(effective_page_width /12, th, '', border=0, align="L")
+                pdf.cell(effective_page_width /12, th,'',border=0,align="L")
+                pdf.cell(effective_page_width /12, th, 'phase:', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p2']), border=0, align="R")
 
-    pdf.ln(th * 1.1)
-    pdf.cell(effective_page_width / 3, th, '- Asymmetric Coulomb Friction:', border=0, align="L")
-    pdf.ln(th * 0.7)
-    pdf.cell(effective_page_width / 6, th, '     gamma:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['coulomb_friction']['gamma']), border=0, align="R")
-    pdf.ln(th * 0.7)
-    pdf.cell(effective_page_width / 6, th, '     dc_minus:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['coulomb_friction']['dc_minus']), border=0, align="R")
-    pdf.ln(th * 0.7)
-    pdf.cell(effective_page_width / 6, th, '     dc_plus:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['coulomb_friction']['dc_plus']), border=0, align="R")
-    pdf.ln(th * 0.7)
+            if num_of_sinusoids > 2:
+                pdf.ln(th * 1.1)
+                pdf.cell(effective_page_width /12, th,'Sin_3', border=0, align="L")
+                pdf.cell(effective_page_width /12, th,'amplitude', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['a3']), border=0, align="R")
+                pdf.ln(th * 0.75)
+                pdf.cell(effective_page_width /12, th,'', border=0, align="L")
+                pdf.cell(effective_page_width /12, th,'ang. vel.', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th,'{:.7f}'.format(yaml_dict['ripple']['w3']), border=0, align="R")
+                pdf.ln(th * 0.75)
+                pdf.cell(effective_page_width / 12,th,'',border=0,align="L")
+                pdf.cell(effective_page_width / 12, th, 'phase:', border=0, align="L")
+                pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['ripple']['p3']), border=0, align="R")
 
-    pdf.ln(th * 2.3)
-    pdf.multi_cell(w=effective_page_width/3, h=5, txt='When comapared to the refernce data the prediction of this model holds:')
+        pdf.image(name=image_base_path + '_ripple-calib.png',
+                h = effective_page_heigth * 0.45,
+                x = 20,
+                y = 154)
 
-    pdf.ln(th * 0.66)
-    pdf.cell(effective_page_width / 3, th, '- Inertia:', border=0, align="L")
-    pdf.ln(th * 0.7)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['inertia_model_NRMSE']), border=0, align="R")
-    pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['inertia_model_RMSE']), border=0, align="R")
-    pdf.ln(th * 1.1)
+    #####################################################################################################
+    if 'friction' in yaml_dict:
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', size=14)
+        pdf.cell(200, 10, txt='Inertia and Friction Identification', ln=1)
+        pdf.set_font("Arial", '', size=13)
 
-    pdf.cell(effective_page_width / 3, th, '- Torque:', border=0, align="L")
-    pdf.ln(th * 0.7)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['friction_model_NRMSE']), border=0, align="R")
-    pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['friction_model_RMSE']), border=0, align="R")
-    pdf.ln(th * 1.1)
+        txt_description = 'For this test the motor is free to move. In velocity control {num_s} swipes were performed at different constant velocities. Then, in position control, a periodic reference trajectory, composed of multiple sinusoids was sent to the motor. Using linear regression a model is interpolated to match the data recorded.'
+        num_s = 2 * len(out_dict['calib_friction']['steps'])
+        pdf.multi_cell(w=effective_page_width,
+                    h=7,
+                    txt=txt_description.format(num_s=num_s))
 
-    pdf.cell(effective_page_width / 3, th, '- Position:', border=0, align="L")
-    pdf.ln(th * 0.7)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['position_model_NRMSE']), border=0, align="R")
-    pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['position_model_RMSE']), border=0, align="R")
-    pdf.ln(th * 1.1)
+        pdf.ln(th * 0.5)
+        pdf.multi_cell( w=effective_page_width/3, h=5,
+            txt='The model obtained has the following parameters:')
+        pdf.ln(1)
+        pdf.cell(effective_page_width / 6, th, '- Motor Inertia:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['motor_inertia']), border=0, align="R")
 
-    pdf.cell(effective_page_width / 3, th, '- Velocity:', border=0, align="L")
-    pdf.ln(th * 0.7)
-    pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_NRMSE']), border=0, align="R")
-    pdf.ln(5)
-    pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
-    pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_RMSE']), border=0, align="R")
+        pdf.ln(th * 1.1)
+        pdf.cell(effective_page_width / 3, th, '- Asymmetric Viscous Friction:', border=0, align="L")
+        pdf.ln(th * 0.7)
+        pdf.cell(effective_page_width / 6, th, '     gamma:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['viscous_friction']['gamma']), border=0, align="R")
+        pdf.ln(th * 0.7)
+        pdf.cell(effective_page_width / 6, th, '     dv_minus:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['viscous_friction']['dv_minus']), border=0, align="R")
+        pdf.ln(th * 0.7)
+        pdf.cell(effective_page_width / 6, th, '     dv_plus:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['viscous_friction']['dv_plus']), border=0, align="R")
+
+        pdf.ln(th * 1.1)
+        pdf.cell(effective_page_width / 3, th, '- Asymmetric Coulomb Friction:', border=0, align="L")
+        pdf.ln(th * 0.7)
+        pdf.cell(effective_page_width / 6, th, '     gamma:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['coulomb_friction']['gamma']), border=0, align="R")
+        pdf.ln(th * 0.7)
+        pdf.cell(effective_page_width / 6, th, '     dc_minus:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['coulomb_friction']['dc_minus']), border=0, align="R")
+        pdf.ln(th * 0.7)
+        pdf.cell(effective_page_width / 6, th, '     dc_plus:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['coulomb_friction']['dc_plus']), border=0, align="R")
+        pdf.ln(th * 0.7)
+
+        pdf.ln(th * 2.3)
+        pdf.multi_cell(w=effective_page_width/3, h=5, txt='When comapared to the refernce data the prediction of this model holds:')
+
+        pdf.ln(th * 0.66)
+        pdf.cell(effective_page_width / 3, th, '- Inertia:', border=0, align="L")
+        pdf.ln(th * 0.7)
+        pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['inertia_model_NRMSE']), border=0, align="R")
+        pdf.ln(5)
+        pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['inertia_model_RMSE']), border=0, align="R")
+        pdf.ln(th * 1.1)
+
+        pdf.cell(effective_page_width / 3, th, '- Torque:', border=0, align="L")
+        pdf.ln(th * 0.7)
+        pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['friction_model_NRMSE']), border=0, align="R")
+        pdf.ln(5)
+        pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['friction_model_RMSE']), border=0, align="R")
+        pdf.ln(th * 1.1)
+
+        pdf.cell(effective_page_width / 3, th, '- Position:', border=0, align="L")
+        pdf.ln(th * 0.7)
+        pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['position_model_NRMSE']), border=0, align="R")
+        pdf.ln(5)
+        pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['position_model_RMSE']), border=0, align="R")
+        pdf.ln(th * 1.1)
+
+        pdf.cell(effective_page_width / 3, th, '- Velocity:', border=0, align="L")
+        pdf.ln(th * 0.7)
+        pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_NRMSE']), border=0, align="R")
+        pdf.ln(5)
+        pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_RMSE']), border=0, align="R")
 
 
-    pdf.image(name=image_base_path + '_friction-calib_torque-vs-w.png',
-              w=effective_page_width * 2 / 3,
-              x=effective_page_width * 0.4,
-              y=effective_page_heigth * 1 / 3 - 7)
-    pdf.image(name=image_base_path + '_friction-calib_simulation.png',
-              w=effective_page_width * 2 / 3,
-              x=effective_page_width * 0.4,
-              y=effective_page_heigth * 2 / 3 - 5)
+        pdf.image(name=image_base_path + '_friction-calib_torque-vs-w.png',
+                w=effective_page_width * 2 / 3,
+                x=effective_page_width * 0.4,
+                y=effective_page_heigth * 1 / 3 - 7)
+        pdf.image(name=image_base_path + '_friction-calib_simulation.png',
+                w=effective_page_width * 2 / 3,
+                x=effective_page_width * 0.4,
+                y=effective_page_heigth * 2 / 3 - 5)
 
 
     ##################################################################
