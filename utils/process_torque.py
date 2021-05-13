@@ -97,8 +97,8 @@ def process(yaml_file, plot_all=False):
 
     # Save the graph
     fig_name = image_base_path + '1.png'
-    print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    print('[i] Saved graph as: ' + fig_name)
 
 
     # Torsion_bar_stiff: torque read from the loadcell vs the motor's torque cell deflexion --------------------------------------------------------------
@@ -184,8 +184,8 @@ def process(yaml_file, plot_all=False):
 
     # Save the graph
     fig_name = image_base_path + '2.png'
-    print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    print('[i] Saved graph as: ' + fig_name)
 
     # Save result ------------------------------------------------------------------------------------------
     if 'name' in out_dict['log']:
@@ -326,8 +326,8 @@ def process(yaml_file, plot_all=False):
 
     # Save the graph
     fig_name = image_base_path + '3.png'
-    print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    print('[i] Saved graph as: ' + fig_name)
 
     # Save result ------------------------------------------------------------------------------------------
 
@@ -373,8 +373,8 @@ def process(yaml_file, plot_all=False):
 
     # Save the graph
     fig_name = image_base_path + '4.png'
-    # print('Saving graph as: ' + fig_name)
     # plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    # print('[i] Saved graph as: ' + fig_name)
 
 
     print('Saving results to: ' + yaml_name)
