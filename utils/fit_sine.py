@@ -1,4 +1,5 @@
-#!/usr/bin/python3
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import numpy
 import scipy.optimize
@@ -81,7 +82,7 @@ def fit_sin2(tt, yy, fit_w=False):
         A1, A2, p1, p2, c = popt
         w1 = 1.
         w2 = 2.
-    
+
     f1 = w1 / (2. * numpy.pi)
     f2 = w2 / (2. * numpy.pi)
     # fitfunc =  lambda t: A1 * numpy.sin(w1 * t + p1) + A2 * numpy.sin(w2 * t + p2) + c
