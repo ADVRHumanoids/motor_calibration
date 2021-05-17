@@ -6,7 +6,6 @@ import sys
 import glob
 import yaml
 
-from utils import plot_utils
 from datetime import datetime
 
 def move_yaml(yaml_file):
@@ -80,5 +79,15 @@ def move_log(yaml_file, new_name='NULL'):
 
     cmd = 'cp ' + tmp_file + ' ' + new_name
     if os.system(cmd):
-        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error while copying logs' + plot_utils.bcolors.ENDC)
+        sys.exit(u'\033[91m[\u2717] Error while copying logs\033[0m')
     print('log_file: ' + new_name)
+
+if __name__ == "__main__":
+    #import costum files
+    sys.path.append('/home/tree/ecat_dev/motor_calibration')
+    from utils import plot_utils
+    plot_utils.print_alberobotics()
+
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting process_torque" + plot_utils.bcolors.ENDC)
+    yaml_file = move_log(yaml_file=sys.argv[1])
+    print(plot_utils.bcolors.OKBLUE + "[i] Succesfully fetched inertia-calib log" + plot_utils.bcolors.ENDC)
