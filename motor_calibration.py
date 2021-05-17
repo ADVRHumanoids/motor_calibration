@@ -22,7 +22,7 @@ from utils.prompt_utils import single_yes_or_no_question as prompt_user
 
 ## Parameters:
 # path to test-pdo
-cmd0 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/test-pdo/test-pdo')
+cmd0 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/calib-test-pdo/calib-test-pdo')
 # path to phase-calib to test phase angle and log data
 cmd1 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib/phase-calib')
 # path to set-phase to set the optimized value to the motor
