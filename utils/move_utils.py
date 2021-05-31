@@ -84,8 +84,10 @@ def move_log(yaml_file, new_name='NULL'):
 
 if __name__ == "__main__":
     #import costum files
-    sys.path.append('/home/tree/ecat_dev/motor_calibration')
-    from utils import plot_utils
+    try:
+        from utils import plot_utils
+    except ImportError:
+        import plot_utils
     plot_utils.print_alberobotics()
 
     print(plot_utils.bcolors.OKBLUE + "[i] Starting process_torque" + plot_utils.bcolors.ENDC)

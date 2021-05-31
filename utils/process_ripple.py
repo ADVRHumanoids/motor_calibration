@@ -11,8 +11,12 @@ from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 
 #import costum
-from utils import plot_utils
-from utils import fit_sine
+try:
+    from utils import plot_utils
+    from utils import fit_sine
+except ImportError:
+    import plot_utils
+    import fit_sine
 
 def process(yaml_file, plot_all=False):
     plt.rcParams['savefig.dpi'] = 300
