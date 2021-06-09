@@ -93,10 +93,6 @@ def process(yaml_file='NULL'):
          + code_string[-2:]
     subtitle_txt = 'Actuator: ' + motor_id
 
-    ## load phase data
-    if 'phase_angle' in yaml_dict['phase']:
-        ph_angle = yaml_dict['phase']['phase_angle']
-
     # Load PDF class into a variable pdf
     pdf = PDF(title_txt=title_txt,
               subtitle_txt1=subtitle_txt,
@@ -260,9 +256,15 @@ def process(yaml_file='NULL'):
         pdf.cell(effective_page_width*0.17, th, str(flash_dict["Motor_gear_ratio"]), border=0)
         pdf.ln(th)
         pdf.cell(effective_page_width*0.32, th, "Motor_el_ph_angle", border=0)
-        pdf.cell(effective_page_width*0.17, th, '{:.5f}'.format(ph_angle), border=0)
+        if 'phase' in yaml_dict:
+            pdf.cell(effective_page_width*0.17, th, '{:7.5f}'.format(yaml_dict['phase']['phase_angle']), border=0)
+        else:
+            pdf.cell(effective_page_width*0.17, th, str(flash_dict['Motor_el_ph_angle']), border=0)
         pdf.cell(effective_page_width*0.32, th, "Torsion_bar_stiff", border=0)
-        pdf.cell(effective_page_width*0.17, th, str(flash_dict["Torsion_bar_stiff"]), border=0)
+        if 'phase' in yaml_dict:
+            pdf.cell(effective_page_width*0.17, th, '{:7.5f}'.format(yaml_dict['torque']['Torsion_bar_stiff']['ord_linear']['Value']), border=0)
+        else:
+            pdf.cell(effective_page_width*0.17, th, str(flash_dict["Torsion_bar_stiff"]), border=0)
         pdf.ln(th)
         pdf.cell(effective_page_width*0.32, th, "CurrGainP", border=0)
         pdf.cell(effective_page_width*0.17, th, str(flash_dict["CurrGainP"]), border=0)
@@ -302,7 +304,10 @@ def process(yaml_file='NULL'):
         pdf.cell(effective_page_width*0.17, th, str(flash_dict["DOB_filterFrequencyHz"]), border=0)
         pdf.ln(th)
         pdf.cell(effective_page_width*0.32, th, "torqueFixedOffset", border=0)
-        pdf.cell(effective_page_width*0.17, th, '{:.5f}'.format(yaml_dict['ripple']['c']), border=0)
+        if 'ripple' in yaml_dict:
+            pdf.cell(effective_page_width*0.17, th, '{:.5f}'.format(yaml_dict['ripple']['c']), border=0)
+        else:
+            pdf.cell(effective_page_width*0.17, th, '{:.5f}'.format(flash_dict['torqueFixedOffset']), border=0)
         pdf.cell(effective_page_width*0.32, th, "voltageFeedforward", border=0)
         pdf.cell(effective_page_width*0.17, th, str(flash_dict["voltageFeedforward"]), border=0)
         pdf.ln(th)
@@ -333,26 +338,27 @@ def process(yaml_file='NULL'):
 
 
     #####################################################################################################
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', size=14)
-    pdf.cell(200, 10, txt="Electrical Phase Angle Calibration", ln=1)
-    pdf.set_font("Arial", '', size=13)
-    txt_description = "For this test the motor is free to move. The 2 pi range of possible value is devieded into {steps} steps, and back-and-forth motions are used to find the commutation offset angle that maximizes speed. Once found the a second round of {steps} steps is repeated for the neighbourhood of the maximum. Data are saved and a second order polinomial is fitted. \n\nFor this motor the phase ange as been estimated to be {new_p:.5f} rad. It previously was set to {old_p:.5f} rad.\n"
-    if 'iq_number_of_steps' in out_dict['calib_phase']:
-        pdf.multi_cell(
-            w=effective_page_width , h=7,
-            txt=txt_description.format(steps=out_dict['calib_phase']['iq_number_of_steps'], new_p=ph_angle, old_p=flash_dict["Motor_el_ph_angle"])
-        )
-    else:
-        pdf.multi_cell(w=effective_page_width, h=5, txt=txt_description.format(steps=25))
+    if 'phase' in yaml_dict:
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', size=14)
+        pdf.cell(200, 10, txt="Electrical Phase Angle Calibration", ln=1)
+        pdf.set_font("Arial", '', size=13)
+        txt_description = "For this test the motor is free to move. The 2 pi range of possible value is devieded into {steps} steps, and back-and-forth motions are used to find the commutation offset angle that maximizes speed. Once found the a second round of {steps} steps is repeated for the neighbourhood of the maximum. Data are saved and a second order polinomial is fitted. \n\nFor this motor the phase ange as been estimated to be {new_p:.5f} rad. It previously was set to {old_p:.5f} rad.\n"
+        if 'iq_number_of_steps' in out_dict['calib_phase']:
+            pdf.multi_cell(
+                w=effective_page_width , h=7,
+                txt=txt_description.format(steps=out_dict['calib_phase']['iq_number_of_steps'], new_p=yaml_dict['phase']['phase_angle'], old_p=flash_dict["Motor_el_ph_angle"])
+            )
+        else:
+            pdf.multi_cell(w=effective_page_width, h=5, txt=txt_description.format(steps=25))
 
-    pdf.image(name=image_base_path + '_phase-calib.png',
-              h = effective_page_heigth * 0.45,
-              x = effective_page_width  * 0.11,
-              y = effective_page_heigth / 2 )
+        pdf.image(name=image_base_path + '_phase-calib.png',
+                h = effective_page_heigth * 0.45,
+                x = effective_page_width  * 0.11,
+                y = effective_page_heigth / 2 )
 
     #####################################################################################################
-    if 'torque' in yaml_dict['torque']:
+    if 'torque' in yaml_dict:
         pdf.add_page()
         pdf.set_font("Arial", 'B', size=14)
         pdf.cell(200, 10, txt="Torque sensor calibration", ln=1)
@@ -567,37 +573,37 @@ def process(yaml_file='NULL'):
         pdf.ln(th * 0.66)
         pdf.cell(effective_page_width / 3, th, '- Inertia:', border=0, align="L")
         pdf.ln(th * 0.7)
-        pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, 'NRMSE:', border=0, align="R")
         pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['inertia_model_NRMSE']), border=0, align="R")
         pdf.ln(5)
-        pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, 'RMSE:', border=0, align="R")
         pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['inertia_model_RMSE']), border=0, align="R")
         pdf.ln(th * 1.1)
 
         pdf.cell(effective_page_width / 3, th, '- Torque:', border=0, align="L")
         pdf.ln(th * 0.7)
-        pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, 'NRMSE:', border=0, align="R")
         pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['friction_model_NRMSE']), border=0, align="R")
         pdf.ln(5)
-        pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, 'RMSE:', border=0, align="R")
         pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['friction_model_RMSE']), border=0, align="R")
         pdf.ln(th * 1.1)
 
         pdf.cell(effective_page_width / 3, th, '- Position:', border=0, align="L")
         pdf.ln(th * 0.7)
-        pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, 'NRMSE:', border=0, align="R")
         pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['position_model_NRMSE']), border=0, align="R")
         pdf.ln(5)
-        pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, 'RMSE:', border=0, align="R")
         pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['position_model_RMSE']), border=0, align="R")
         pdf.ln(th * 1.1)
 
         pdf.cell(effective_page_width / 3, th, '- Velocity:', border=0, align="L")
         pdf.ln(th * 0.7)
-        pdf.cell(effective_page_width / 6, th, '     NRMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, 'NRMSE:', border=0, align="R")
         pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_NRMSE']), border=0, align="R")
         pdf.ln(5)
-        pdf.cell(effective_page_width / 6, th, '      RMSE:', border=0, align="L")
+        pdf.cell(effective_page_width / 6, th, 'RMSE:', border=0, align="R")
         pdf.cell(effective_page_width / 6, th, '{:.7f}'.format(yaml_dict['friction']['statistics']['velocity_model_RMSE']), border=0, align="R")
 
 
