@@ -12,7 +12,11 @@ from sklearn.linear_model import LinearRegression
 from matplotlib import pyplot as plt
 
 #import costum
-from utils import plot_utils
+try:
+    from utils import plot_utilsì
+except ImportError:
+    import plot_utilsì
+
 
 def process(yaml_file, plot_all=False):
     plt.rcParams['savefig.dpi'] = 300
