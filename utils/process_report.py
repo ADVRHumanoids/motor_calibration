@@ -41,6 +41,23 @@ class PDF(FPDF):
         # Page number
         self.cell(w=0, h=10, txt='Page ' + str(self.page_no()), border=0, ln=0, align='C')
 
+
+def create_latex_image(text, verbose=False, output_file='/tmp/latex.png', dpi=600, path_to_pnglatex='./pnglatex.sh'):
+    # uses https://github.com/mneri/pnglatex
+    if path_to_pnglatex[0] =='.':
+        path_to_pnglatex= os.path.dirname(sys.modules[__name__].__file__) + path_to_pnglatex[1:]
+
+    cmd = f'{path_to_pnglatex} -f "{text}" -o {output_file} -d {dpi}'
+    if verbose:
+        print(cmd)
+    else:
+        cmd = cmd + ' -S'
+
+    if os.system(cmd):
+        sys.exit(u'\033[91m[\u2717] Error while creating latex image\033[0m')
+    return output_file
+
+
 def process(yaml_file='NULL'):
 
     # load results
@@ -618,6 +635,91 @@ def process(yaml_file='NULL'):
 
 
     ##################################################################
+    if 'frequency_response' in yaml_dict:
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', size=14)
+        pdf.cell(200, 10, txt="Frequency response", ln=1)
+        pdf.set_font("Arial", '', size=13)
+
+        txt_description= "For this test, the motor output shaft is locked. "\
+            + f"In current control, we apply a chirp reference (Amplitude:{out_dict['calib_freq']['A']}A, "\
+            + f"Initial freq: {out_dict['calib_freq']['freq_0']}Hz, Final freq: {out_dict['calib_freq']['freq_f']}Hz, "\
+            + f"duration: {out_dict['calib_freq']['duration']}s), "\
+            + "and from the data obtained we extrapolated the experimental frequency response function."
+
+        if out_dict['calib_freq']['number_of_iters'] > 1:
+            txt_description = txt_description + f" This is repeated {out_dict['calib_freq']['number_of_iters']} times."
+
+        pdf.multi_cell( w=effective_page_width,
+                        h=7,
+                        txt=txt_description
+                    )
+        # pdf.ln(th*0.25)
+        # txt_description= "."
+        # pdf.multi_cell( w=effective_page_width/3, h=th, txt=txt_description)
+        pdf.ln(th * 1.1)
+        txt_description= "The model-fitting has been performed in the frequency domain using least square regression on a second-order and a third-order transfer function."
+        pdf.multi_cell(w=effective_page_width/3, h=th, txt=txt_description, border=0, align="L")
+        pdf.ln(th)
+
+        pdf.cell(effective_page_width / 3, th,'- Second-order system:', border=0, align="L")
+        pdf.ln(th * 0.75)
+        # image with path: create_latex_image(text, output_file='/tmp/tf_20.png')
+        f_20 = f"\\frac{{ {yaml_dict['frequency_response']['lsq20']['num'][0]:.2f} }}"\
+             + f"{{ s^2 "\
+             +(f"+ {yaml_dict['frequency_response']['lsq20']['den'][1]:.2f} s " if yaml_dict['frequency_response']['lsq20']['den'][1] >= 0 else f"{yaml_dict['frequency_response']['lsq20']['den'][1]:.2f} s ")\
+             +(f"+ {yaml_dict['frequency_response']['lsq20']['den'][2]:.2f} }}" if yaml_dict['frequency_response']['lsq20']['den'][2] >= 0 else f"{yaml_dict['frequency_response']['lsq20']['den'][2]:.2f} }}")
+        pdf.image(name=create_latex_image(text=f_20, output_file='/tmp/tf_20.png', dpi=600),
+                w=effective_page_width * 1 / 6, #pdf.w - 2 * pdf.l_margin
+                x= pdf.l_margin*2.5, #effective_page_width * 0.15,
+                y=pdf.h * 0.471)
+        pdf.ln(th * 1.75)
+        pdf.cell(effective_page_width *2/9, th,'  Natural frequency:', border=0, align="L")
+        pdf.cell(effective_page_width *1/9, th,'{:6.5f}'.format(yaml_dict['frequency_response']['lsq20']['NRMSE']), border=0, align="L")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width *2/9, th,'Damping ratio:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['frequency_response']['lsq20']['zeta']), border=0, align="L")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width *2/9, th,'DC Gain:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['frequency_response']['lsq20']['k']), border=0, align="L")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width *2/9, th,'NMRSE:', border=0, align="R")
+        pdf.cell(effective_page_width / 9, th,'{:6.5f}'.format(yaml_dict['frequency_response']['lsq20']['NRMSE']), border=0, align="L")
+
+        pdf.ln(th * 1.1)
+        pdf.cell(effective_page_width / 3, th,'- Third-order system:', border=0, align="L")
+        pdf.ln(th * 0.75)
+        # image with path: create_latex_image(text=f_31, output_file='/tmp/tf_31.png')
+        f_31 = f"\\frac{{ {yaml_dict['frequency_response']['lsq31']['num'][0]:.2f} s "\
+             +(f"+ {yaml_dict['frequency_response']['lsq31']['num'][1]:.2f} }}" if yaml_dict['frequency_response']['lsq31']['num'][1] >= 0 else f"{yaml_dict['frequency_response']['lsq31']['num'][1]:.2f} }}")\
+             + f"{{ s^3 "\
+             +(f"+ {yaml_dict['frequency_response']['lsq31']['den'][1]:.2f} s^2 " if yaml_dict['frequency_response']['lsq31']['den'][1] >= 0 else f"{yaml_dict['frequency_response']['lsq31']['den'][1]:.2f} s^2 ")\
+             +(f"+ {yaml_dict['frequency_response']['lsq31']['den'][2]:.2f} s " if yaml_dict['frequency_response']['lsq31']['den'][2] >= 0 else f"{yaml_dict['frequency_response']['lsq31']['den'][2]:.2f} s ")\
+             +(f"+ {yaml_dict['frequency_response']['lsq31']['den'][3]:.2f} }}" if yaml_dict['frequency_response']['lsq31']['den'][3] >= 0 else f"{yaml_dict['frequency_response']['lsq31']['den'][3]:.2f} }}")
+        pdf.image(name=create_latex_image(text=f_31, output_file='/tmp/tf_31.png', dpi=1200),
+                w=effective_page_width * 1 / 4 * 1.35, #pdf.w - 2 * pdf.l_margin
+                x= pdf.l_margin*1.1, #effective_page_width * 0.15,
+                y=pdf.h * 0.605)
+
+        pdf.ln(th * 1.75)
+        pdf.cell(effective_page_width *2/9, th,'  DC Gain:', border=0, align="R")
+        pdf.cell(effective_page_width +1/9, th,'{:6.5f}'.format(yaml_dict['frequency_response']['lsq31']['k']), border=0, align="L")
+        pdf.ln(th * 0.75)
+        pdf.cell(effective_page_width *2/9, th,'  NMRSE:', border=0, align="R")
+        pdf.cell(effective_page_width +1/9, th,'{:6.5f}'.format(yaml_dict['frequency_response']['lsq31']['NRMSE']), border=0, align="L")
+
+
+        pdf.image(name=image_base_path + '_frequency-calib_1.png',
+                w=effective_page_width * 2 / 3,
+                x=effective_page_width * 0.4,
+                y=effective_page_heigth * 1 / 3 - 7)
+        pdf.image(name=image_base_path + '_frequency-calib_2.png',
+                w=effective_page_width * 2 / 3,
+                x=effective_page_width * 0.4,
+                y=effective_page_heigth * 2 / 3)
+
+
+    #####################################################################################################
     # if flash params have been modified, append old values
     if ('phase' in yaml_dict) or ('ripple' in yaml_dict) or ('torque' in yaml_dict):
         pdf.add_page()
