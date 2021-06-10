@@ -9,7 +9,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 #import costum
-from utils import plot_utils
+try:
+    from utils import plot_utils
+except ImportError:
+    import plot_utils
 
 def process(yaml_file, plot_all=False):
     plt.rcParams['savefig.dpi'] = 300
@@ -354,8 +357,8 @@ def process(yaml_file, plot_all=False):
 
     # Save the graph
     fig_name = image_base_path + '.png'
-    print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    print('[i] Saved graph as: ' + fig_name)
 
     # Save result
     if 'name' in out_dict['log']:

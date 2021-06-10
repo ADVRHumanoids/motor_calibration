@@ -12,7 +12,11 @@ from sklearn.linear_model import LinearRegression
 from matplotlib import pyplot as plt
 
 #import costum
-from utils import plot_utils
+try:
+    from utils import plot_utilsì
+except ImportError:
+    import plot_utilsì
+
 
 def process(yaml_file, plot_all=False):
     plt.rcParams['savefig.dpi'] = 300
@@ -98,8 +102,8 @@ def process(yaml_file, plot_all=False):
 
     # Save the graph
     fig_name = image_base_path + '1.png'
-    print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    print('[i] Saved graph as: ' + fig_name)
 
 
     # Torsion_bar_stiff: torque read from the loadcell vs the motor's torque cell deflexion --------------------------------------------------------------
@@ -185,8 +189,8 @@ def process(yaml_file, plot_all=False):
 
     # Save the graph
     fig_name = image_base_path + '2.png'
-    print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    print('[i] Saved graph as: ' + fig_name)
 
     # Save result ------------------------------------------------------------------------------------------
     if 'name' in out_dict['log']:
@@ -327,8 +331,8 @@ def process(yaml_file, plot_all=False):
 
     # Save the graph
     fig_name = image_base_path + '3.png'
-    print('Saving graph as: ' + fig_name)
     plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    print('[i] Saved graph as: ' + fig_name)
 
     # Save result ------------------------------------------------------------------------------------------
 
@@ -374,8 +378,8 @@ def process(yaml_file, plot_all=False):
 
     # Save the graph
     fig_name = image_base_path + '4.png'
-    # print('Saving graph as: ' + fig_name)
     # plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    # print('[i] Saved graph as: ' + fig_name)
 
 
     print('Saving results to: ' + yaml_name)

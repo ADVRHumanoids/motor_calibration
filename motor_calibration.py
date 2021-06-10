@@ -16,6 +16,7 @@ from utils import process_phase
 from utils import process_torque
 from utils import process_ripple
 from utils import process_friction
+from utils import process_frequency
 from utils import process_report
 from utils import plot_utils
 from utils import move_utils
@@ -24,7 +25,7 @@ from utils.prompt_utils import single_yes_or_no_question as prompt_user
 
 ## Parameters:
 # path to test-pdo
-cmd0 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/test-pdo/test-pdo')
+cmd0 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/calib-test-pdo/calib-test-pdo')
 # path to phase-calib to test phase angle and log data
 cmd1 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/phase-calib/phase-calib')
 # path to set-phase to set the optimized value to the motor
@@ -39,6 +40,8 @@ cmd3 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/r
 cmd4 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/friction-calib/friction-calib')
 # path to inertia-calib for inertia identification
 cmd4b = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/inertia-calib/inertia-calib')
+# path to frequency-calib for frequecy response calibration
+cmd5 = os.path.expanduser('~/ecat_dev/ec_master_app/build/examples/motor-calib/frequency-calib/frequency-calib')
 # path to the configuration file for the motor and the test variables
 config_file = os.path.expanduser('~/ecat_dev/ec_master_app/examples/motor-calib/config.yaml')
 # path to credentials to connect to the motors' database
@@ -130,23 +133,23 @@ print(plot_utils.bcolors.OKBLUE + "[i] Ended inertia-calib successfully" + plot_
 print(plot_utils.bcolors.OKBLUE + "[i] Processing friction and inertia data" + plot_utils.bcolors.ENDC)
 process_friction.process(yaml_file=config_file, plot_all=False)
 
-# ## TODO: Frequency response calibration
-# # prompt user to fully lock the motor before continuing
-# print("For frequency response calibration, the motor must be fully locked")
-# while not prompt_user("""Before continuing make sure the motor's output flange is properly locked.
-# Continue?"""):
-#     pass
+## Frequency response calibration
+# prompt user to fully lock the motor before continuing
+print("For frequency response calibration, the motor must be fully locked")
+while not prompt_user("""Before continuing make sure the motor's output flange is properly locked.
+Continue?"""):
+    pass
 
-# # TODO: run test
-# print(plot_utils.bcolors.OKBLUE + "[i] Starting frequency-calib" + plot_utils.bcolors.ENDC)
-# if os.system(cmd5 + ' ' + config_file):
-#     sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during frequency-calib' + plot_utils.bcolors.ENDC)
-# move_utils.move_log(yaml_file=config_file)
-# print(plot_utils.bcolors.OKBLUE + "[i] Ended frequency-calib successfully" + plot_utils.bcolors.ENDC)
+# run test
+print(plot_utils.bcolors.OKBLUE + "[i] Starting frequency-calib" + plot_utils.bcolors.ENDC)
+if os.system(cmd5 + ' ' + config_file):
+    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during frequency-calib' + plot_utils.bcolors.ENDC)
+move_utils.move_log(yaml_file=config_file)
+print(plot_utils.bcolors.OKBLUE + "[i] Ended frequency-calib successfully" + plot_utils.bcolors.ENDC)
 
-# # TODO: process extracted data
-# print(plot_utils.bcolors.OKBLUE + "[i] Processing frequency response data" + plot_utils.bcolors.ENDC)
-# process_friction.process(yaml_file=config_file, plot_all=False)
+# process extracted data
+print(plot_utils.bcolors.OKBLUE + "[i] Processing frequency response data" + plot_utils.bcolors.ENDC)
+process_frequency.process(yaml_file=config_file, plot_all=False)
 
 # generate report
 print(plot_utils.bcolors.OKBLUE + "[i] Genereating the report" + plot_utils.bcolors.ENDC)
