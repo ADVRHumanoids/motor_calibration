@@ -49,8 +49,15 @@ class MotorData:
             self.has_flash_param = True
             self.flash_Hardware_config =            yaml_dict['flash_params']['Hardware_config']            # uint16
             self.flash_Motor_gear_ratio =           yaml_dict['flash_params']['Motor_gear_ratio']           # uint16
-            self.flash_Motor_el_ph_angle =          yaml_dict['flash_params']['Motor_el_ph_angle']          #  float
-            self.flash_Torsion_bar_stiff =          yaml_dict['flash_params']['Torsion_bar_stiff']          #  float
+            if 'phase' in out_dict['results']:
+                self.flash_Motor_el_ph_angle =      out_dict['results']['phase']['phase_angle']             #  float
+            else:
+                self.flash_Motor_el_ph_angle =      yaml_dict['flash_params']['Motor_el_ph_angle']          #  float
+
+            if 'torque' in out_dict['results']:
+                self.flash_Torsion_bar_stiff =      out_dict['results']['torque']['Torsion_bar_stiff']['ord_linear']['Value'] #  float
+            else:
+                self.flash_Torsion_bar_stiff =      yaml_dict['flash_params']['Torsion_bar_stiff']          #  float
             self.flash_CurrGainP =                  yaml_dict['flash_params']['CurrGainP']                  #  float
             self.flash_CurrGainI =                  yaml_dict['flash_params']['CurrGainI']                  #  float
             self.flash_Max_cur =                    yaml_dict['flash_params']['Max_cur']                    #  float
@@ -65,7 +72,10 @@ class MotorData:
             self.flash_gearedMotorInertia =         yaml_dict['flash_params']['gearedMotorInertia']         #  float
             self.flash_motorTorqueConstant =        yaml_dict['flash_params']['motorTorqueConstant']        #  float
             self.flash_DOB_filterFrequencyHz =      yaml_dict['flash_params']['DOB_filterFrequencyHz']      #  float
-            self.flash_torqueFixedOffset =          yaml_dict['flash_params']['torqueFixedOffset']          #  float
+            if 'ripple' in yaml_dict:
+                self.flash_torqueFixedOffset =      out_dict['results']['ripple']['c']                      #  float
+            else:
+                self.flash_torqueFixedOffset =      yaml_dict['flash_params']['torqueFixedOffset']          #  float
             self.flash_voltageFeedforward =         yaml_dict['flash_params']['voltageFeedforward']         #  float
             self.flash_windingResistance =          yaml_dict['flash_params']['windingResistance']          #  float
             self.flash_backEmfCompensation =        yaml_dict['flash_params']['backEmfCompensation']        #  float
@@ -266,6 +276,38 @@ class TestData:
         else:
             self.has_friction = False
 
+
+        # frequency response:
+        if 'frequency_response' in yaml_dict:
+            self.has_frequencyResponse = True
+            if 'lsq20' in yaml_dict['frequency_response']:
+                self.has_frequencyResponse_lsq20 = True
+                self.frequencyResponse_lsq20_NMRSE = yaml_dict['frequency_response']['lsq20']['NRMSE']
+                self.frequencyResponse_lsq20_dcGain = yaml_dict['frequency_response']['lsq20']['k']
+                self.frequencyResponse_lsq20_naturalFreq = yaml_dict['frequency_response']['lsq20']['wn']
+                self.frequencyResponse_lsq20_dampingRatio = yaml_dict['frequency_response']['lsq20']['zeta']
+                self.frequencyResponse_lsq20_num_0 = yaml_dict['frequency_response']['lsq20']['num'][0]
+                self.frequencyResponse_lsq20_dem_s2 = yaml_dict['frequency_response']['lsq20']['den'][0]
+                self.frequencyResponse_lsq20_dem_s = yaml_dict['frequency_response']['lsq20']['den'][1]
+                self.frequencyResponse_lsq20_dem_0 = yaml_dict['frequency_response']['lsq20']['den'][2]
+            else:
+                self.has_frequencyResponse_lsq20= False
+
+            if 'lsq31' in yaml_dict['frequency_response']:
+                self.has_frequencyResponse_lsq31 = True
+                self.frequencyResponse_lsq31_NMRSE = yaml_dict['frequency_response']['lsq31']['NRMSE']
+                self.frequencyResponse_lsq31_dcGain = yaml_dict['frequency_response']['lsq31']['k']
+                self.frequencyResponse_lsq31_num_s = yaml_dict['frequency_response']['lsq31']['num'][0]
+                self.frequencyResponse_lsq31_num_0 = yaml_dict['frequency_response']['lsq31']['num'][1]
+                self.frequencyResponse_lsq31_dem_s3 = yaml_dict['frequency_response']['lsq31']['den'][0]
+                self.frequencyResponse_lsq31_dem_s2 = yaml_dict['frequency_response']['lsq31']['den'][1]
+                self.frequencyResponse_lsq31_dem_s = yaml_dict['frequency_response']['lsq31']['den'][2]
+                self.frequencyResponse_lsq31_dem_0 = yaml_dict['frequency_response']['lsq31']['den'][3]
+            else:
+                self.has_frequencyResponse_lsq31= False
+        else:
+            self.frequencyResponse = False
+
     def get_params(self):
         out_dict = {'serial_Num_Act' : self.serial_Num_Act }
 
@@ -360,6 +402,32 @@ class TestData:
                         'friction_simulation_vel_RMSE'  : self.friction_simulation_vel_RMSE,
                         'friction_simulation_vel_NRMSE' : self.friction_simulation_vel_NRMSE
                     })
+
+        # frequency response
+        if self.has_frequencyResponse:
+            if self.has_frequencyResponse_lsq20:
+                out_dict.update({
+                'frequencyResponse_lsq20_NMRSE'         : self.frequencyResponse_lsq20_NMRSE,
+                'frequencyResponse_lsq20_dcGain'        : self.frequencyResponse_lsq20_dcGain,
+                'frequencyResponse_lsq20_naturalFreq'   : self.frequencyResponse_lsq20_naturalFreq,
+                'frequencyResponse_lsq20_dampingRatio'  : self.frequencyResponse_lsq20_dampingRatio,
+                'frequencyResponse_lsq20_num_0'         : self.frequencyResponse_lsq20_num_0,
+                'frequencyResponse_lsq20_dem_s2'        : self.frequencyResponse_lsq20_dem_s2,
+                'frequencyResponse_lsq20_dem_s'         : self.frequencyResponse_lsq20_dem_s,
+                'frequencyResponse_lsq20_dem_0'         : self.frequencyResponse_lsq20_dem_0
+            })
+
+            if self.has_frequencyResponse_lsq31:
+                out_dict.update({
+                'frequencyResponse_lsq31_NMRSE'         : self.frequencyResponse_lsq31_NMRSE,
+                'frequencyResponse_lsq31_dcGain'        : self.frequencyResponse_lsq31_dcGain,
+                'frequencyResponse_lsq31_num_s'         : self.frequencyResponse_lsq31_num_s,
+                'frequencyResponse_lsq31_num_0'         : self.frequencyResponse_lsq31_num_0,
+                'frequencyResponse_lsq31_dem_s3'        : self.frequencyResponse_lsq31_dem_s3,
+                'frequencyResponse_lsq31_dem_s2'        : self.frequencyResponse_lsq31_dem_s2,
+                'frequencyResponse_lsq31_dem_s'         : self.frequencyResponse_lsq31_dem_s,
+                'frequencyResponse_lsq31_dem_0'         : self.frequencyResponse_lsq31_dem_0
+            })
 
         return out_dict
 
