@@ -185,6 +185,104 @@ def process(yaml_file, plot_all=False):
     tf_lsq31 = p_lsq31[0]*(control.TransferFunction.s+p_lsq31[1])/(control.TransferFunction.s**3+(control.TransferFunction.s**2)*p_lsq31[2]+control.TransferFunction.s*p_lsq31[3]+p_lsq31[4])
     print("TF_lsq31: ", tf_lsq31)
 
+    Ts = 0.001
+    from matplotlib import mlab
+    def tfestimate(x, y, *args, **kwargs):
+        """estimate transfer function from x to y, see csd for calling convention"""
+        # https://stackoverflow.com/questions/28462144/python-version-of-matlab-signal-toolboxs-tfestimate
+        Pyx, f = mlab.csd(x, y, *args, **kwargs)
+        Pxx, f = mlab.psd(x, *args, **kwargs)
+        return  [pyx / pxx for pyx, pxx in zip(Pyx, Pxx)], f
+    tf_est, f_est = tfestimate(i_q, motor_tor, Fs=1/Ts)
+
+    from statsmodels.tsa.arima.model import ARIMA
+    import pandas as pd
+    exog_data,  dt, t_RS = bode_utils.resampleUniformedData(ns, i_q, dt=1e6) # 1ms = 10^6ns
+    endog_data, dt, t_RS = bode_utils.resampleUniformedData(ns, motor_tor, dt=dt)
+    t_RS=[np.uint64(s)-ns[0] for s in t_RS]
+
+    exog=pd.DataFrame({'i_q': exog_data}, index=t_RS)
+    exog.index=pd.to_datetime(exog.index)
+    exog.index.name = 'Time'
+    exog = exog.resample("L").last()
+    #print(exog.head())
+    #print("\n")
+
+    endog=pd.DataFrame({'motor_tor':endog_data}, index=t_RS)
+    endog.index=pd.to_datetime(endog.index)
+    endog.index.name = 'Time'
+    endog = endog.resample("L").last()
+    #print(endog.head())
+
+    model = ARIMA(endog=endog, exog=exog.dropna(), order=(4, 0, 3), enforce_stationarity=True, enforce_invertibility=False)#, freq='L')
+    # model = ARIMA(endog=endog, exog=exog, order=(2, 0, 0), enforce_stationarity=True, enforce_invertibility=False)#, freq='L')
+    print("[i] Started ARMA parameter estimation")
+    results = model.fit()
+    print(results.summary())
+
+
+    predictions_ARIMA_diff = pd.Series(results.fittedvalues, copy=True)
+    # predictions_ARIMA_diff_cumsum = predictions_ARIMA_diff.cumsum()
+    # predictions_ARIMA = pd.Series(endog['motor_tor'].iloc[0], index=endog.index)
+    # predictions_ARIMA = predictions_ARIMA.add(predictions_ARIMA_diff_cumsum, fill_value=0)
+    # print('predictions_ARIMA.head():\n',predictions_ARIMA.head())
+
+    fig, axs = plt.subplots(2)
+    axs[0].plot(endog, '.', label='motor_tor')
+    axs[0].plot(predictions_ARIMA_diff, '.', label='predictions_ARIMA_diff', alpha=0.5)
+    axs[1].plot(t_RS, [v-v_est for v,v_est in zip(endog['motor_tor'],predictions_ARIMA_diff)])
+
+    axs[0].grid(b=True, which='major', axis='x', linestyle='-')
+    axs[0].grid(b=True, which='minor', axis='x', linestyle=':')
+    axs[0].grid(b=True, which='major', axis='y', linestyle='-')
+    axs[1].grid(b=True, which='major', axis='x', linestyle='-')
+    axs[1].grid(b=True, which='minor', axis='x', linestyle=':')
+    axs[1].grid(b=True, which='major', axis='y', linestyle='-')
+
+    # Save the graph
+    fig_name = image_base_path + '_2b.png'
+    plt.savefig(fname=fig_name, format='png', bbox_inches='tight')
+    print('[i] Saved graph as: ' + fig_name)
+    if plot_all:
+        plt.show()
+
+    print('results:', results.specification)
+    print('\naic',results.aic)
+    print('\naicc',results.aicc)
+    print('\narfreq',results.arfreq)
+    print('\narparams',results.arparams)
+    print('\narroots',results.arroots)
+    print('\nbic',results.bic)
+    print('\nbse',results.bse)
+    print('\nhqic',results.hqic)
+    print('\nllf',results.llf)
+    print('\nllf_obs',results.llf_obs)
+    print('\nmae',results.mae)
+    print('\nmafreq',results.mafreq)
+    print('\nmaparams',results.maparams)
+    print('\nmaroots',results.maroots)
+    print('\nmse',results.mse)
+    print('\npvalues',results.pvalues)
+    print('\nsse',results.sse)
+    print('\ntvalues',results.tvalues)
+    print('\nuse_t',results.use_t)
+    print('\nzvalues',results.zvalues)
+    #print('\nstates',results.states)
+
+    print('\npoles: ', np.roots(results.polynomial_ar[::-1]))
+    print('zeros: ', np.roots(results.polynomial_ma[::-1]))
+
+    import control
+    #z= control.TransferFunction.z
+    z = control.tf([1, 0], 1, 0.001)
+
+    Az = 1/ (sum(a * (z**(k)) for k, a in enumerate(results.polynomial_ar[::-1])))
+    Bz = sum(b * (z**(k)) for k, b in enumerate(results.polynomial_ma[::-1]))
+    Hz=Bz*Az*z
+    print('Hz:\n',Hz)
+
+    magz, phasez, omegaz = control.bode(Hz, dB=True, Hz=True, plot=False)
+    omegaz = omegaz/(2*np.pi) # convert form rad/s to Hz
 
     # plot bode
     fig, axs = plt.subplots(2)
@@ -192,6 +290,7 @@ def process(yaml_file, plot_all=False):
     axs[0].semilogx(w_f, mag_filt, color='#1e1e1e', marker='.', markersize=0.5, linestyle="", label='filtered')
     axs[0].semilogx(w_f, [20*math.log10(np.abs(m)) for m in h_lsq20], marker='.', markersize=0.5, linestyle="", label='model(2,0)')
     axs[0].semilogx(w_f, [20*math.log10(np.abs(m)) for m in h_lsq31], marker='.', markersize=0.5, linestyle="", label='model(3,1)')
+    axs[0].semilogx(omegaz, [20*math.log10(m) for m in magz], color='#ff2f0e', marker='.', markersize=0.5, linestyle="", label=f"ARMA[{results.specification.k_ar}, {results.specification.k_ma}]")
     lgnd = axs[0].legend()
     for handle in lgnd.legendHandles:
         handle._legmarker.set_markersize(6)
@@ -200,6 +299,7 @@ def process(yaml_file, plot_all=False):
     axs[1].semilogx(w_f, phase_filt, color='#1e1e1e', marker='.', markersize=0.5, linestyle="", label='filtered')
     axs[1].semilogx(w_f, np.unwrap([np.angle(p) for p in h_lsq20]), marker='.', markersize=0.5, linestyle="", label='model(2,0)')
     axs[1].semilogx(w_f, np.unwrap([np.angle(p) for p in h_lsq31]), marker='.', markersize=0.5, linestyle="", label='model(3,1)')
+    axs[1].semilogx(omegaz, phasez, color='#ff2f0e', marker='.', markersize=0.5, linestyle="", label=f"ARMA[{results.specification.k_ar}, {results.specification.k_ma}]")
     lgnd = axs[1].legend()
     for handle in lgnd.legendHandles:
         handle._legmarker.set_markersize(6)
