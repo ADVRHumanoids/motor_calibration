@@ -7,6 +7,10 @@ import glob
 import yaml
 import statistics
 import numpy as np
+
+# tell matplotlib not to try to load up GTK as it returns errors over ssh
+from matplotlib import use as plt_use
+plt_use("Agg")
 from matplotlib import pyplot as plt
 from matplotlib.lines import Line2D
 

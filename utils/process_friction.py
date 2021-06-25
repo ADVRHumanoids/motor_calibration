@@ -13,6 +13,13 @@ from pprint import pprint
 from copy import deepcopy
 from collections.abc import Mapping
 from sklearn.metrics import mean_squared_error
+
+#import costum files
+import sys
+sys.path.append('/home/tree/ecat_dev_old/motor_calibration')
+# tell matplotlib not to try to load up GTK as it returns errors over ssh
+from matplotlib import use as plt_use
+plt_use("Agg")
 import matplotlib.pyplot as plt
 
 from friction_calibration_tool.utils_module.motor import MotorData

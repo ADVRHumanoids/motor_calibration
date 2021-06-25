@@ -9,13 +9,17 @@ import statistics
 import numpy as np
 from scipy import odr
 from sklearn.linear_model import LinearRegression
+
+# tell matplotlib not to try to load up GTK as it returns errors over ssh
+from matplotlib import use as plt_use
+plt_use("Agg")
 from matplotlib import pyplot as plt
 
 #import costum
 try:
-    from utils import plot_utilsì
+    from utils import plot_utils
 except ImportError:
-    import plot_utilsì
+    import plot_utils
 
 
 def process(yaml_file, plot_all=False):
@@ -95,7 +99,9 @@ def process(yaml_file, plot_all=False):
     axs.spines['top'].set_visible(False)
     axs.spines['right'].set_visible(False)
     axs.spines['left'].set_visible(False)
-    axs.legend(handles=(l0,l1,l2,l3), labels=('i_fb', 'i_ref','tor_motor','tor_loadcell'))
+    lgnd = axs.legend(handles=(l0,l1,l2,l3), labels=('i_fb', 'i_ref','tor_motor','tor_loadcell'))
+    for handle in lgnd.legendHandles:
+        handle._legmarker.set_markersize(6)
     plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
     if plot_all:
         plt.show()
@@ -161,7 +167,9 @@ def process(yaml_file, plot_all=False):
     # l4, = axs.plot(tor_displ, tor_odr, color='#2ca02c', linestyle='-', linewidth=1)
     # axs.legend(handles=(l0, l1, l2, l3, l4), labels=('full test datapoints', 't_log datapoints', 'SDO', 'sklean.LinearRegression','scipy.odr'))
     l3, = axs.plot(tor_displ, tor_odr, color='#ff7f0e', linestyle='-', linewidth=1)
-    axs.legend(handles=(l0, l1, l2, l3), labels=('full test datapoints', 't_log datapoints', 'SDO','Total least squares'))
+    lgnd= axs.legend(handles=(l0, l1, l2, l3), labels=('full test datapoints', 't_log datapoints', 'SDO','Total least squares'))
+    for handle in lgnd.legendHandles:
+        handle._legmarker.set_markersize(6)
 
     axs.set_ylabel('Torque from loadcell reading (Nm)')
     axs.set_xlabel('Motor torque sensor displacement (rad)')
@@ -312,7 +320,9 @@ def process(yaml_file, plot_all=False):
     l5, = axs.plot(i_steps, [poly2_func(odr_out2.beta,x) for x in i_steps], color='#2ca02c', marker='.', markersize=3.0, linestyle='-', alpha=0.5)
     # axs.legend(handles=(l0, l1, l2, l3), labels=('full test datapoints', 't_log datapoints', 'expected (10% tollerance)', 'test avarage'))
     # axs.legend(handles=(l0, l1, l3, l2, l4), labels=('full test datapoints', 't_log datapoints', 'avarage', 'SDO','scipy.odr'))
-    axs.legend(handles=(l0, l1, l3, l3b, l2, l4, l5), labels=('full test datapoints', 't_log datapoints', 't_log w/ rising current only', 'avarage', 'SDO', 'scipy.ord (linear)','scipy.ord (poly2)'))
+    lgnd = axs.legend(handles=(l0, l1, l3, l3b, l2, l4, l5), labels=('full test datapoints', 't_log datapoints', 't_log w/ rising current only', 'avarage', 'SDO', 'scipy.ord (linear)','scipy.ord (poly2)'))
+    for handle in lgnd.legendHandles:
+        handle._legmarker.set_markersize(6)
 
     axs.set_ylabel('Torque from loadcell reading (Nm)')
     axs.set_xlabel('Current reference (A)')
