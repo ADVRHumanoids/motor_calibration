@@ -61,104 +61,133 @@ list_of_files = glob.glob('/logs/**/*_results.yaml', recursive=True)
 config_file = max(list_of_files, key=os.path.getctime)
 
 ## test phase angles
-print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
-if os.system(cmd1 + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during phase-calib' + plot_utils.bcolors.ENDC)
-print(plot_utils.bcolors.OKBLUE + "[i] Ended phase-calib successfully" + plot_utils.bcolors.ENDC)
+if not prompt_user("""[?] Run phase angle calibration?"""):
+    print(plot_utils.bcolors.OKBLUE + "[i] Skipping phase-calib" + plot_utils.bcolors.ENDC)
+else:
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting phase-calib" + plot_utils.bcolors.ENDC)
+    if os.system(cmd1 + ' ' + config_file):
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during phase-calib' + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ended phase-calib successfully" + plot_utils.bcolors.ENDC)
 
-# process extracted data
-print(plot_utils.bcolors.OKBLUE + "[i] Processing phase data" + plot_utils.bcolors.ENDC)
-config_file = process_phase.process(yaml_file=config_file, plot_all=False)
+    # process extracted data
+    print(plot_utils.bcolors.OKBLUE + "[i] Processing phase data" + plot_utils.bcolors.ENDC)
+    config_file = process_phase.process(yaml_file=config_file, plot_all=False)
 
-# Upload to motor the best phase angle
-print(plot_utils.bcolors.OKBLUE + "[i] Sending phase angle to motor using set-phase" +  plot_utils.bcolors.ENDC)
-if os.system(cmd1b + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-phase' + plot_utils.bcolors.ENDC)
-print(plot_utils.bcolors.OKBLUE + "[i] Ended set-phase successfully" + plot_utils.bcolors.ENDC)
+    # Upload to motor the best phase angle
+    print(plot_utils.bcolors.OKBLUE + "[i] Sending phase angle to motor using set-phase" +  plot_utils.bcolors.ENDC)
+    if os.system(cmd1b + ' ' + config_file):
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-phase' + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ended set-phase successfully" + plot_utils.bcolors.ENDC)
 
 ## test torquecell's torsion bar stiffness and torque constant
-# prompt user to connect loadcell before continuing
-print("For torsion bar stiffness and torque constant calibration, the loadcell is needed.")
-while not prompt_user("""Before continuing make sure the loadcell is properly connected and the motor's flange is in contact with it.
+if not prompt_user("""[?] Run torque sensor calibration?"""):
+    print(plot_utils.bcolors.OKBLUE + "[i] Skipping torque-calib" + plot_utils.bcolors.ENDC)
+else:
+    # prompt user to connect loadcell before continuing
+    print("For torsion bar stiffness and torque constant calibration, the loadcell is needed.")
+    while not prompt_user("""Before continuing make sure the loadcell is properly connected and the motor's flange is in contact with it.
 Continue?"""):
-    pass
+        pass
 
-#run test
-print(plot_utils.bcolors.OKBLUE + "[i] Starting torque-calib" + plot_utils.bcolors.ENDC)
-if os.system(cmd2 + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during torque-calib' + plot_utils.bcolors.ENDC)
-print(plot_utils.bcolors.OKBLUE + "[i] Ended torque-calib successfully" + plot_utils.bcolors.ENDC)
+    #run test
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting torque-calib" + plot_utils.bcolors.ENDC)
+    if os.system(cmd2 + ' ' + config_file):
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during torque-calib' + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ended torque-calib successfully" + plot_utils.bcolors.ENDC)
 
-# process extracted data
-print(plot_utils.bcolors.OKBLUE + "[i] Processing torque data" + plot_utils.bcolors.ENDC)
-config_file = process_torque.process(yaml_file=config_file, plot_all=False)
+    # process extracted data
+    print(plot_utils.bcolors.OKBLUE + "[i] Processing torque data" + plot_utils.bcolors.ENDC)
+    config_file = process_torque.process(yaml_file=config_file, plot_all=False)
 
-# Upload to motor the updated torsion bar stiffness (and torque constant?)
-print(plot_utils.bcolors.OKBLUE + "[i] Sending torsion bar stiffness to motor using set-torque" +  plot_utils.bcolors.ENDC)
-if os.system(cmd2b + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-torque' + plot_utils.bcolors.ENDC)
-print(plot_utils.bcolors.OKBLUE + "[i] Ended set-torque successfully" + plot_utils.bcolors.ENDC)
+    # Upload to motor the updated torsion bar stiffness (and torque constant?)
+    print(plot_utils.bcolors.OKBLUE + "[i] Sending torsion bar stiffness to motor using set-torque" +  plot_utils.bcolors.ENDC)
+    if os.system(cmd2b + ' ' + config_file):
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during set-torque' + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ended set-torque successfully" + plot_utils.bcolors.ENDC)
 
 ## test ripple and position dependant torque
-# prompt user to disconnect loadcell before continuing
-print("For ripple and position dependant torque, the motor must be free to move.")
-while not prompt_user("""Before continuing make sure the motor's output flange has nothing connected.
+run_ripple = prompt_user("""[?] Run ripple and position-dependent torque offset calibration?""")
+if not run_ripple:
+    print(plot_utils.bcolors.OKBLUE + "[i] Skipping ripple-calib" + plot_utils.bcolors.ENDC)
+else:
+    # prompt user to disconnect loadcell before continuing
+    print("For ripple and position dependant torque, the motor must be free to move.")
+    while not prompt_user("""Before continuing make sure the motor's output flange has nothing connected.
 Continue?"""):
-    pass
+        pass
 
-# run test
-print(plot_utils.bcolors.OKBLUE + "[i] Starting ripple-calib" + plot_utils.bcolors.ENDC)
-if os.system(cmd3 + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during ripple-calib' + plot_utils.bcolors.ENDC)
-print(plot_utils.bcolors.OKBLUE + "[i] Ended ripple-calib successfully" + plot_utils.bcolors.ENDC)
+    # run test
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting ripple-calib" + plot_utils.bcolors.ENDC)
+    if os.system(cmd3 + ' ' + config_file):
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during ripple-calib' + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ended ripple-calib successfully" + plot_utils.bcolors.ENDC)
 
-# process extracted data
-print(plot_utils.bcolors.OKBLUE + "[i] Processing ripple data" + plot_utils.bcolors.ENDC)
-config_file = process_ripple.process(yaml_file=config_file, plot_all=False)
+    # process extracted data
+    print(plot_utils.bcolors.OKBLUE + "[i] Processing ripple data" + plot_utils.bcolors.ENDC)
+    config_file = process_ripple.process(yaml_file=config_file, plot_all=False)
 
 ## Friction identification
-print(plot_utils.bcolors.OKBLUE + "[i] Starting friction-calib" + plot_utils.bcolors.ENDC)
-if os.system(cmd4 + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during friction-calib' + plot_utils.bcolors.ENDC)
-print(plot_utils.bcolors.OKBLUE + "[i] Ended friction-calib successfully" + plot_utils.bcolors.ENDC)
+if not prompt_user("""[?] Run inertia and friction identification?"""):
+    print(plot_utils.bcolors.OKBLUE + "[i] Skipping friction-calib" + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Skipping inertia-calib" + plot_utils.bcolors.ENDC)
+else:
+    # prompt user to disconnect loadcell before continuing
+    if not run_ripple:
+        print("For inertia and friction identification, the motor must be free to move.")
+        while not prompt_user("Before continuing make sure the motor's output flange has nothing connected. Continue?"):
+            pass
 
-## Inertia identification
-print(plot_utils.bcolors.OKBLUE + "[i] Starting inertia-calib" + plot_utils.bcolors.ENDC)
-if os.system(cmd4b + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during inertia-calib' + plot_utils.bcolors.ENDC)
-move_utils.move_log(yaml_file=config_file)
-print(plot_utils.bcolors.OKBLUE + "[i] Ended inertia-calib successfully" + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting friction-calib" + plot_utils.bcolors.ENDC)
+    if os.system(cmd4 + ' ' + config_file):
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during friction-calib' + plot_utils.bcolors.ENDC)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ended friction-calib successfully" + plot_utils.bcolors.ENDC)
 
-# process extracted data
-print(plot_utils.bcolors.OKBLUE + "[i] Processing friction and inertia data" + plot_utils.bcolors.ENDC)
-process_friction.process(yaml_file=config_file, plot_all=False)
+    ## Inertia identification
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting inertia-calib" + plot_utils.bcolors.ENDC)
+    if os.system(cmd4b + ' ' + config_file):
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during inertia-calib' + plot_utils.bcolors.ENDC)
+    move_utils.move_log(yaml_file=config_file)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ended inertia-calib successfully" + plot_utils.bcolors.ENDC)
+
+    # process extracted data
+    print(plot_utils.bcolors.OKBLUE + "[i] Processing friction and inertia data" + plot_utils.bcolors.ENDC)
+    process_friction.process(yaml_file=config_file, plot_all=False)
 
 ## Frequency response calibration
-# prompt user to fully lock the motor before continuing
-print("For frequency response calibration, the motor must be fully locked")
-while not prompt_user("""Before continuing make sure the motor's output flange is properly locked.
+if not prompt_user("""[?] Run frequency response calibration?"""):
+    print(plot_utils.bcolors.OKBLUE + "[i] Skipping frequency-calib" + plot_utils.bcolors.ENDC)
+else:
+    # prompt user to fully lock the motor before continuing
+    print("For frequency response calibration, the motor must be fully locked")
+    while not prompt_user("""Before continuing make sure the motor's output flange is properly locked.
 Continue?"""):
-    pass
+        pass
 
-# run test
-print(plot_utils.bcolors.OKBLUE + "[i] Starting frequency-calib" + plot_utils.bcolors.ENDC)
-if os.system(cmd5 + ' ' + config_file):
-    sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during frequency-calib' + plot_utils.bcolors.ENDC)
-move_utils.move_log(yaml_file=config_file)
-print(plot_utils.bcolors.OKBLUE + "[i] Ended frequency-calib successfully" + plot_utils.bcolors.ENDC)
+    # run test
+    print(plot_utils.bcolors.OKBLUE + "[i] Starting frequency-calib" + plot_utils.bcolors.ENDC)
+    if os.system(cmd5 + ' ' + config_file):
+        sys.exit(plot_utils.bcolors.FAIL + u'[\u2717] Error during frequency-calib' + plot_utils.bcolors.ENDC)
+    move_utils.move_log(yaml_file=config_file)
+    print(plot_utils.bcolors.OKBLUE + "[i] Ended frequency-calib successfully" + plot_utils.bcolors.ENDC)
 
-# process extracted data
-print(plot_utils.bcolors.OKBLUE + "[i] Processing frequency response data" + plot_utils.bcolors.ENDC)
-process_frequency.process(yaml_file=config_file, plot_all=False)
-
-# generate report
-print(plot_utils.bcolors.OKBLUE + "[i] Genereating the report" + plot_utils.bcolors.ENDC)
-config_file = process_report.process(yaml_file=config_file)
+    # process extracted data
+    print(plot_utils.bcolors.OKBLUE + "[i] Processing frequency response data" + plot_utils.bcolors.ENDC)
+    process_frequency.process(yaml_file=config_file, plot_all=False)
 
 # generate report
-print(plot_utils.bcolors.OKBLUE + "[i] Uploading to database" + plot_utils.bcolors.ENDC)
-database_utils.upload_from_yaml(credentials_file=credentials_file, yaml_file=config_file)
-print(plot_utils.bcolors.OKBLUE + "[i] Upload compleated successfully" + plot_utils.bcolors.ENDC)
+if not prompt_user("""[?] Genereate the report?"""):
+    print(plot_utils.bcolors.OKBLUE + "[i] Skipping report generation" + plot_utils.bcolors.ENDC)
+else:
+    print(plot_utils.bcolors.OKBLUE + "[i] Genereating the report" + plot_utils.bcolors.ENDC)
+    config_file = process_report.process(yaml_file=config_file)
+
+# generate report
+if not prompt_user("""[?] Upload results to the database?"""):
+    print(plot_utils.bcolors.OKBLUE + "[i] Skipping upload" + plot_utils.bcolors.ENDC)
+else:
+    print(plot_utils.bcolors.OKBLUE + "[i] Uploading to database" + plot_utils.bcolors.ENDC)
+    database_utils.upload_from_yaml(credentials_file=credentials_file, yaml_file=config_file)
+    print(plot_utils.bcolors.OKBLUE + "[i] Upload compleated successfully" + plot_utils.bcolors.ENDC)
 
 ## All done
 print(plot_utils.bcolors.OKGREEN + u'[\u2713] Ended calibraiton successfully' + plot_utils.bcolors.ENDC)
