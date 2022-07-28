@@ -1,15 +1,87 @@
-# Motor Calibration
+<!-- PROJECT SHIELDS -->
+<!-- These badges can be used once we make the project public -->
+<!-- [![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url] -->
 
-Scripts to calibrate mc_centAC motors.
+<!-- PROJECT LOGO -->
+<br />
+<p align="center">
+  <a href="https://github.com/ADVRHumanoids/motor_calibration">
+    <img src="https://alberobotics.it/images/apple-touch-icon.png" alt="Logo" width="80" height="80">
+  </a>
 
-## Prerequisite
+  <h2 align="center">motor_calibration</h2>
+
+  <p align="center">
+    Calibrate <i>mc_centAC</i> motors
+    <br />
+    <a href="https://github.com/ADVRHumanoids/motor_calibration/wiki"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <!-- <a href="https://github.com/ADVRHumanoids/motor_calibration">View Demo</a>
+    ·
+    <a href="https://github.com/ADVRHumanoids/motor_calibration/issues">Request Feature</a>
+    ·
+    <a href="https://github.com/ADVRHumanoids/motor_calibration/issues">Report Bug</a>
+    -->
+  </p>
+
+<!--
+[![Build Status](https://app.travis-ci.com/ADVRHumanoids/motor_calibration.svg?token=zJseufwSAzkrEc1mqg8v&branch=development)](https://app.travis-ci.com/ADVRHumanoids/motor_calibration)
+[![codecov](https://codecov.io/gh/ADVRHumanoids/motor_calibration/branch/development/graph/badge.svg?token=aW77dBlb1w)](https://codecov.io/gh/ADVRHumanoids/motor_calibration)
+-->
+
+<!-- TABLE OF CONTENTS -->
+<details open="open">
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#documentation">Documentation</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <!-- <li><a href="#license">License</a></li> -->
+    <li><a href="#contact">Contact</a></li>
+    <!-- <li><a href="#acknowledgements">Acknowledgements</a></li> -->
+  </ol>
+</details>
+
+<!-- ABOUT THE PROJECT -->
+
+## About The Project
+
+This repo contains Alberobotics' set of tests to evaluate new electronics, motors, and components.
+
+## Getting Started
+
+To get a local copy up and running follow these simple example steps.
+
+### Prerequisites
 
 EtherCAT libraries:
 
-- [**SOEM**](https://gitlab.advr.iit.it/xeno-ecat/soem/-/tree/xeno3) (branch **xeno-3**).
-- [**ADVRHumanoids/ecat_master_tree**](https://github.com/ADVRHumanoids/ecat_master_tree) (branch **mt_calib**) which detached from [ecat_master_advr](https://gitlab.advr.iit.it/xeno-ecat/ecat_master_advr) at commit `6e9ac5b`
+- [**soem_advr**](https://gitlab.advr.iit.it/xeno-ecat/soem_advr) (branch **xeno-3**) at commit `8697f06`.
+- [**ADVRHumanoids/ecat_master_tree**](https://github.com/ADVRHumanoids/ecat_master_tree) (branch **mt_calib**) which detached from [ecat_master_advr](https://gitlab.advr.iit.it/xeno-ecat/ecat_master_advr) at commit `6e9ac5b`.
+- [**ADVRHumanoids/ec_master_app**](https://github.com/ADVRHumanoids/ec_master_app) (branch **mt_stable**) which detached from [ec_master_tests](https://gitlab.advr.iit.it/xeno-ecat/ec_master_tests) at commit `a40d8184`.
 
-If you need to use the old ecat master, move to `mt_old_master` branch.
+If you need to use the old ecat master, use the `support/old_master` branch.
+
+### Installation
+
+In the instruction below we assume to be using the latest version of `ecat_master_tree`, `ec_master_app` and `motor_calibration`, and to have them located in `~/ecat_dev/`.
 
 ## Usage
 
@@ -20,8 +92,6 @@ python3 motor_calibration.py
 ```
 
 The tests can also be run manually. Below they are all listed and along with instructions on to run/process them.
-
-We assume to be using the latest version of `ecat_master_tree` and `motor_calibration`, and to have both located in `~/ecat_dev/`.
 
 ### 0. Test PDO
 
@@ -131,3 +201,57 @@ table_test: abc # table where to store the tests' results
 user: abc # username to access the database
 password: abc
 ```
+
+## Documentation
+
+Documentation can be found in the [Github Wiki page](https://github.com/ADVRHumanoids/motor_calibration/wiki).
+
+## Roadmap
+
+See the [open issues](https://github.com/ADVRHumanoids/motor_calibration/issues) for a list of proposed features (and known issues).
+
+<!-- CONTRIBUTING -->
+
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+<!-- TODO:LICENSE - ->
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information. -->
+
+<!-- CONTACT -->
+
+## Contact
+
+Alberobotics team - alberobotics@iit.it
+
+Project Link: [https://github.com/ADVRHumanoids/motor_calibration](https://github.com/ADVRHumanoids/motor_calibration)
+
+<!-- ACKNOWLEDGEMENTS - ->
+## Acknowledgements -->
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- These will be used once we make the project public -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links - ->
+
+[contributors-shield]: https://img.shields.io/github/contributors/ADVRHumanoids/motor_calibration.svg?style=for-the-badge
+[contributors-url]: https://github.com/ADVRHumanoids/motor_calibration/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/ADVRHumanoids/motor_calibration.svg?style=for-the-badge
+[forks-url]: https://github.com/ADVRHumanoids/motor_calibration/network/members
+[stars-shield]: https://img.shields.io/github/stars/ADVRHumanoids/motor_calibration.svg?style=for-the-badge
+[stars-url]: https://github.com/ADVRHumanoids/motor_calibration/stargazers
+[issues-shield]: https://img.shields.io/github/issues/ADVRHumanoids/motor_calibration.svg?style=for-the-badge
+[issues-url]: https://github.com/ADVRHumanoids/motor_calibration/issues
+[license-shield]: https://img.shields.io/github/license/ADVRHumanoids/motor_calibration.svg?style=for-the-badge
+[license-url]: https://github.com/ADVRHumanoids/motor_calibration/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/othneildrew
+[product-screenshot]: images/screenshot.png -->
